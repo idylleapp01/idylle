@@ -51,7 +51,7 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/users/discover', async (req, res) => {
   const currentUserId = req.query.userId;
   try {
-    let queryText = 'SELECT id, name, birthday, gender, bio FROM users';
+    let queryText = 'SELECT id, name, birthday, gender, bio, profile_pic_url FROM users';
     let queryParams = [];
     if (currentUserId) { queryText += ' WHERE id != $1'; queryParams.push(currentUserId); }
     queryText += ' LIMIT 20';
@@ -60,37 +60,49 @@ app.get('/api/users/discover', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
 });
 
-// LIKE ROUTE: Action for swiping right / liking a profile
+// LIKE ROUTE
 app.post('/api/like', async (req, res) => {
   const { likerId, likedId } = req.body;
+  if (!likerId || !likedId) return res.status(400).json({ error: "Both likerId and likedId are required." });
+  try {
+    await pool.query('INSERT INTO likes (liker_id, liked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [likerId, likedId]);
+    const mutualLike = await pool.query('SELECT * FROM likes WHERE liker_id = $1 AND liked_id = $2', [likedId, likerId]);
+    res.status(200).json({ message: "Like recorded!", match: mutualLike.rows.length > 0 });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
+});
 
-  if (!likerId || !likedId) {
-    return res.status(400).json({ error: "Both likerId and likedId are required." });
+// PROFILE UPDATE ROUTE: Let users add/change bios and profile pictures
+app.put('/api/profile/update', async (req, res) => {
+  const { userId, bio, profilePicUrl, gender } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required to update a profile." });
   }
 
   try {
-    // 1. Log the like into the database
-    await pool.query(
-      'INSERT INTO likes (liker_id, liked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [likerId, likedId]
+    // Dynamically update fields in the database for this user id
+    const updatedUser = await pool.query(
+      `UPDATE users 
+       SET bio = COALESCE($1, bio), 
+           profile_pic_url = COALESCE($2, profile_pic_url),
+           gender = COALESCE($3, gender)
+       WHERE id = $4
+       RETURNING id, name, bio, profile_pic_url, gender`,
+      [bio, profilePicUrl, gender, userId]
     );
 
-    // 2. Check if the other person has already liked this user back (Mutual Match check)
-    const mutualLike = await pool.query(
-      'SELECT * FROM likes WHERE liker_id = $1 AND liked_id = $2',
-      [likedId, likerId]
-    );
-
-    const isMatch = mutualLike.rows.length > 0;
+    if (updatedUser.rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
 
     res.status(200).json({
-      message: "Like recorded!",
-      match: isMatch // Will return true if it's a mutual match, false if one-sided
+      message: "Profile updated successfully!",
+      user: updatedUser.rows[0]
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Server error recording like." });
+    res.status(500).json({ error: "Server error updating profile." });
   }
 });
 
