@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs'); // Updated to bcryptjs for absolute platform stability
 
 const app = express();
 const PORT = process.env.PORT || 10000;
