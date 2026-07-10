@@ -76,7 +76,7 @@ initDB();
 
 /* ================= AUTHENTICATION ENDPOINTS ================= */
 
-// Signup Route (Accepts multi-step flow registration parameters)
+// Signup Route (Explicit Column Mapping Configuration)
 app.post('/api/signup', async (req, res) => {
     const { email, password, name, username, phone_number, gender, bio, secretAnswer } = req.body;
 
@@ -87,11 +87,29 @@ app.post('/api/signup', async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Target column mapped cleanly to password_hash to comply with database constraints
+        // Explicitly structural binding layout mapping prevents positional order discrepancies
         const result = await pool.query(
-            `INSERT INTO users (email, password_hash, name, username, phone_number, gender, bio, secret_answer) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, username, email`,
-            [email.toLowerCase(), hashedPassword, name, username.toLowerCase(), phone_number, gender, bio, secretAnswer]
+            `INSERT INTO users (
+                email, 
+                password_hash, 
+                name, 
+                username, 
+                phone_number, 
+                gender, 
+                bio, 
+                secret_answer
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+            RETURNING id, name, username, email`,
+            [
+                email.toLowerCase().trim(), 
+                hashedPassword, 
+                name.trim(), 
+                username.toLowerCase().trim(), 
+                phone_number, 
+                gender, 
+                bio, 
+                secretAnswer
+            ]
         );
 
         res.status(201).json({ message: "User registered successfully", user: result.rows[0] });
@@ -123,7 +141,6 @@ app.post('/api/login', async (req, res) => {
         }
 
         const user = userCheck.rows[0];
-        // Compare password input safely with the database password_hash records
         const passMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!passMatch) {
