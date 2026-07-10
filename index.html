@@ -3,656 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idylle - Real Connections</title>
+    <title>IDYLLE - Trust Connections</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-        :root {
-            --bg-color: #ebdff2; 
-            --primary-accent: #e91e63;
-            --text-dark: #111111;
-            --wizard-bg: #111111; /* Dark aesthetic matching screenshots */
-            --wizard-text: #ffffff;
-        }
-
-        body {
-            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-            padding: 20px;
-        }
-
-        /* Branding Styles */
-        .brand-container {
-            text-align: center;
-            margin-bottom: 35px;
-        }
-        .brand-logo {
-            font-size: 3.5rem;
-            font-weight: 900;
-            color: #d60051;
-            margin: 0;
-            letter-spacing: -1.5px;
-            text-transform: uppercase;
-        }
-        .brand-subtitle {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-dark);
-            margin: 10px 0 0 0;
-        }
-
-        /* Portal Wrapper */
-        .auth-container {
-            width: 100%;
-            max-width: 380px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        /* Pill Buttons Design */
-        .pill-btn {
-            width: 100%;
-            padding: 16px 24px;
-            border-radius: 30px;
-            font-size: 1rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            cursor: pointer;
-            box-sizing: border-box;
-            transition: all 0.2s ease;
-            border: 1.5px solid var(--text-dark);
-            background-color: rgba(255, 255, 255, 0.4);
-            color: var(--text-dark);
-        }
-        .pill-btn:hover {
-            background-color: rgba(255, 255, 255, 0.7);
-        }
-        .pill-btn.dark {
-            background-color: var(--text-dark);
-            color: white;
-            border: none;
-        }
-        .pill-btn.dark:hover {
-            background-color: #222222;
-        }
-        .pill-btn svg {
-            width: 20px;
-            height: 20px;
-            fill: currentColor;
-        }
-
-        /* Multi-step Dark Wizard Container */
-        .form-box {
-            background: var(--wizard-bg);
-            color: var(--wizard-text);
-            padding: 40px 30px;
-            border-radius: 24px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 400px;
-            box-sizing: border-box;
-            display: none;
-            flex-direction: column;
-            min-height: 480px;
-            justify-content: space-between;
-        }
-
-        .wizard-step {
-            display: none;
-            flex-direction: column;
-            width: 100%;
-        }
-        .wizard-step.active {
-            display: flex;
-        }
-
-        .wizard-title {
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin: 0 0 12px 0;
-            letter-spacing: -0.5px;
-        }
-        .wizard-desc {
-            font-size: 0.95rem;
-            color: #b3b3b3;
-            line-height: 1.5;
-            margin: 0 0 24px 0;
-        }
-
-        /* Modern Inputs */
-        .wizard-input {
-            width: 100%;
-            background: #000000;
-            border: 1.5px solid #333333;
-            color: #ffffff;
-            padding: 16px;
-            border-radius: 12px;
-            font-size: 1rem;
-            box-sizing: border-box;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .wizard-input:focus {
-            border-color: #ffffff;
-        }
-
-        /* Verification Code Layout */
-        .code-container {
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            margin: 15px 0;
-        }
-        .code-box {
-            width: 50px;
-            height: 54px;
-            background: #000000;
-            border: 1.5px solid #333333;
-            color: #ffffff;
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            border-radius: 10px;
-            outline: none;
-        }
-        .code-box:focus {
-            border-color: #ffffff;
-        }
-
-        /* Dropdown Phone Prefix Setup */
-        .phone-row {
-            display: flex;
-            gap: 10px;
-        }
-        .prefix-select {
-            width: 100px;
-            background: #000000;
-            border: 1.5px solid #333333;
-            color: #ffffff;
-            padding: 16px;
-            border-radius: 12px;
-            font-size: 1rem;
-        }
-
-        /* Wizard Actions */
-        .wizard-footer {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 30px;
-        }
-        .next-action-btn {
-            width: 100%;
-            background-color: #ffffff;
-            color: #000000;
-            border: none;
-            padding: 16px;
-            border-radius: 30px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .next-action-btn:hover {
-            background-color: #e5e5e5;
-        }
-
-        .resend-link {
-            color: #3b82f6;
-            text-align: center;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .footer-notice {
-            font-size: 0.8rem;
-            color: #555;
-            text-align: center;
-            margin-top: 25px;
-        }
-        .toggle-link {
-            color: #ffffff;
-            text-align: center;
-            cursor: pointer;
-            font-size: 0.9rem;
-            text-decoration: underline;
-        }
-
-        /* Main Workspace App Feed Area */
-        .main-container {
-            display: none; 
-            gap: 30px;
-            max-width: 1100px;
-            width: 100%;
-            justify-content: center;
-            align-items: flex-start;
-        }
-        .feed-section { 
-            flex: 1; 
-            display: flex; 
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-        .profile-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 360px;
-            overflow: hidden;
-            text-align: center;
-            padding-bottom: 20px;
-        }
-        .profile-pic { width: 100%; height: 320px; object-fit: cover; background-color: #ddd; }
-        .info { padding: 15px; }
-        .name { font-size: 1.5rem; font-weight: bold; color: #333; margin: 0; }
-        .bio { color: #666; font-size: 0.95rem; margin: 10px 0; min-height: 40px; }
-        .like-btn {
-            background-color: var(--primary-accent);
-            color: white;
-            border: none;
-            padding: 12px 40px;
-            border-radius: 25px;
-            font-size: 1rem;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .chat-section {
-            width: 400px;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            height: 500px;
-            overflow: hidden;
-            position: sticky;
-            top: 20px;
-        }
-        .chat-header { background: var(--primary-accent); color: white; padding: 15px; font-weight: bold; font-size: 1.1rem; text-align: center; }
-        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 14px; border-radius: 15px; max-width: 75%; font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
-        .msg.sent { background: var(--primary-accent); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg.received { background: #e4e6eb; color: #050505; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .chat-input-area { display: flex; padding: 12px; border-top: 1px solid #eee; background: white; gap: 8px; }
-        .chat-input { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 10px 15px; outline: none; }
-        .send-btn { background: none; border: none; color: var(--primary-accent); font-weight: bold; cursor: pointer; }
-        
-        .nav-header { display: none; width: 100%; max-width: 1100px; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .logout-btn { background: none; border: 1px solid var(--primary-accent); color: var(--primary-accent); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; height: 100vh; background-color: #1a1a1a; color: white; }
+        .hero-side { flex: 1.2; background: linear-gradient(135deg, #2b2b2b, #121212); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center; }
+        .form-side { flex: 0.8; background-color: #121212; display: flex; flex-direction: column; justify-content: center; padding: 60px; border-left: 1px solid #2d2d2d; }
+        h1 { font-size: 3.5rem; color: #b51a3a; font-weight: 800; letter-spacing: 2px; margin-bottom: 5px; }
+        .tagline { font-size: 1.2rem; color: #a0a0a0; margin-bottom: 40px; }
+        .action-btn { width: 100%; max-width: 340px; padding: 14px; margin-bottom: 15px; border-radius: 25px; border: 1px solid #444; background: transparent; color: white; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.2s; }
+        .action-btn:hover { background: rgba(255,255,255,0.05); }
+        .google-btn { background-color: #1a1a1a; border-color: #333; }
+        .google-btn:hover { background-color: #242424; }
+        .disclaimer { font-size: 0.75rem; color: #666; margin-top: 30px; }
+        h2 { font-size: 1.8rem; margin-bottom: 20px; color: #fff; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background-color: #1f1f1f; color: white; font-size: 1rem; }
+        input:focus { outline: none; border-color: #b51a3a; }
+        .submit-btn { width: 100%; padding: 14px; background-color: #b51a3a; border: none; color: white; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        .submit-btn:hover { background-color: #94132e; }
+        .toggle-link { margin-top: 20px; font-size: 0.9rem; color: #aaa; text-align: center; cursor: pointer; }
+        .toggle-link span { color: #b51a3a; text-decoration: underline; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div class="nav-header" id="nav-header">
-        <h1 style="color: var(--primary-accent); margin:0;">Idylle Dashboard</h1>
-        <button class="logout-btn" onclick="logout()">Logout</button>
-    </div>
-
-    <div id="auth-screen" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+    <div class="hero-side">
+        <h1>IDYLLE</h1>
+        <p class="tagline">Connections built on total trust</p>
         
-        <div class="brand-container">
-            <h1 class="brand-logo">Idylle</h1>
-            <p class="brand-subtitle">Connections built on total trust</p>
-        </div>
-
-        <div class="auth-container" id="oauth-gateways">
-            <button class="pill-btn" onclick="revealWizardFlow('phone')">
-                <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                Continue with mobile
-            </button>
-            
-            <button class="pill-btn" onclick="revealWizardFlow('email')">
-                <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                Continue with email
-            </button>
-            
-            <button class="pill-btn dark" onclick="alert('Google integration feature coming soon!')">
-                <svg viewBox="0 0 24 24"><path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.866-3.577-7.866-8s3.536-8 7.866-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.986 0-.74-.08-1.305-.175-1.864H12.24z"/></svg>
-                Continue with Google
-            </button>
-            
-            <p class="footer-notice">We will never share anything without your permission</p>
-        </div>
-
-        <div class="form-box" id="functional-forms">
-            
-            <div class="wizard-body">
-                
-                <div class="wizard-step" id="step-email-input">
-                    <h2 class="wizard-title">Mon adresse e-mail</h2>
-                    <p class="wizard-desc">On va t'envoyer un code pour vérifier ton adresse e-mail. Pense à regarder dans tes spams, au cas où tu ne verrais pas l'e-mail.</p>
-                    <input type="email" id="reg-email" class="wizard-input" placeholder="nom@exemple.com">
-                </div>
-
-                <div class="wizard-step" id="step-email-code">
-                    <h2 class="wizard-title">Saisissez votre code</h2>
-                    <p class="wizard-desc">On a envoyé un code d'accès à usage unique à l'adresse renseignée. Le code expirera dans 10 minutes.</p>
-                    <div class="code-container">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                    </div>
-                    <p class="resend-link" onclick="alert('Code renvoyé !')">Renvoyer par e-mail</p>
-                </div>
-
-                <div class="wizard-step" id="step-phone-input">
-                    <h2 class="wizard-title">Quel est ton numéro de téléphone ?</h2>
-                    <p class="wizard-desc">On va t'envoyer un code pour vérifier ton numéro de téléphone. Des frais d'envoi de messages et d'utilisation des données peuvent s'appliquer.</p>
-                    <div class="phone-row">
-                        <select class="prefix-select" id="reg-phone-prefix">
-                            <option value="+34">ES +34</option>
-                            <option value="+33">FR +33</option>
-                            <option value="+1">US +1</option>
-                            <option value="+234">NG +234</option>
-                        </select>
-                        <input type="tel" id="reg-phone" class="wizard-input" placeholder="Numéro de téléphone">
-                    </div>
-                </div>
-
-                <div class="wizard-step" id="step-phone-code">
-                    <h2 class="wizard-title">Saisissez votre code</h2>
-                    <p class="wizard-desc">On a envoyé un code d'accès à usage unique au numéro de téléphone indiqué. Le code expirera dans 5 minutes.</p>
-                    <div class="code-container">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
-                    </div>
-                    <p class="resend-link" onclick="alert('Code SMS renvoyé !')">Renvoyer par SMS</p>
-                </div>
-
-                <div class="wizard-step" id="step-profile-setup">
-                    <h2 class="wizard-title">Profile Configuration</h2>
-                    <p class="wizard-desc">Complete your credentials details below to finalize creating your profile security setup.</p>
-                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 250px; overflow-y: auto; padding-right: 5px;">
-                        <input type="text" id="reg-name" class="wizard-input" placeholder="Full Name">
-                        <input type="text" id="reg-username" class="wizard-input" placeholder="Choose a Unique Username">
-                        <input type="password" id="reg-password" class="wizard-input" placeholder="Create Secure Password">
-                        <input type="text" id="reg-gender" class="wizard-input" placeholder="Gender">
-                        <textarea id="reg-bio" class="wizard-input" placeholder="Tell us about yourself..." style="height: 70px; resize: none;"></textarea>
-                        
-                        <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: #bbb;">Security Question Menu:</p>
-                        <select id="reg-question" class="wizard-input" style="background:#000;">
-                            <option value="What is your hometown?">What is your hometown?</option>
-                            <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-                            <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-                        </select>
-                        <input type="text" id="reg-secret" class="wizard-input" placeholder="Your Security Answer">
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="wizard-footer">
-                <button class="next-action-btn" onclick="executeStepForward()">Suivant</button>
-                <p class="toggle-link" onclick="cancelWizardView()">← Annuler / Retour</p>
-            </div>
-
-        </div>
-
+        <button class="action-btn" onclick="alert('Mobile login feature coming soon!')">📞 Continue with mobile</button>
+        <button class="action-btn" onclick="toggleFormView(false)">✉️ Continue with email</button>
+        <button class="action-btn google-btn" onclick="handleGoogleLoginClick()">✨ Continue with Google</button>
+        
+        <p class="disclaimer">We will never share anything without your permission</p>
     </div>
 
-    <div class="main-container" id="dashboard-screen">
-        <div class="feed-section" id="feed">
-            <p>Loading your discover feed...</p>
+    <div class="form-side" id="authFormContainer">
+        <div id="loginSection">
+            <h2>Welcome Back</h2>
+            <form onsubmit="handleFormLogin(event)">
+                <div class="input-group">
+                    <label>Email or Username</label>
+                    <input type="text" id="loginIdentifier" required placeholder="Enter username or email address">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="submit-btn">Login</button>
+            </form>
+            <p class="toggle-link" onclick="toggleFormView(true)">Don't have an account? <span>Sign Up</span></p>
         </div>
 
-        <div class="chat-section">
-            <div class="chat-header" id="chat-with-title">Select a Match</div>
-            <div class="chat-messages" id="chat-box">
-                <p style="color: #999; text-align: center; margin-top: 50px;">Start matching to unlock chat rooms!</p>
-            </div>
-            <div class="chat-input-area">
-                <input type="text" id="message-input" class="chat-input" placeholder="Type a message...">
-                <button class="send-btn" onclick="sendMessage()">Send</button>
-            </div>
+        <div id="signupSection" class="hidden">
+            <h2>Create Account</h2>
+            <form onsubmit="handleFormSignup(event)">
+                <div class="input-group"><label>Full Name</label><input type="text" id="signName" required></div>
+                <div class="input-group"><label>Username</label><input type="text" id="signUser" required></div>
+                <div class="input-group"><label>Email Address</label><input type="email" id="signEmail" required></div>
+                <div class="input-group"><label>Password</label><input type="password" id="signPass" required></div>
+                <div class="input-group"><label>Security Question: What is your hometown?</label><input type="text" id="signSecret" required placeholder="Answer verification query"></div>
+                <button type="submit" class="submit-btn">Register</button>
+            </form>
+            <p class="toggle-link" onclick="toggleFormView(false)">Already have an account? <span>Login</span></p>
         </div>
     </div>
 
     <script>
-        const API_URL = 'https://idylle-backend.onrender.com/api';
-        let CURRENT_USER_ID = null; 
-        let activeChatUserId = null;  
-        let chatInterval = null; 
+        const BACKEND_URL = "https://idylle-backend.onrender.com";
+        const CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
 
-        // Registration Steps Routing Data Queue Matrix
-        const wizardStepSequence = [
-            'step-email-input',
-            'step-email-code',
-            'step-phone-input',
-            'step-phone-code',
-            'step-profile-setup'
-        ];
-        let currentStepPointer = 0;
-
-        function revealWizardFlow(type) {
-            document.getElementById('oauth-gateways').style.display = 'none';
-            document.getElementById('functional-forms').style.display = 'flex';
-            
-            // Set default initial path starting point based on chosen pill button choice
-            currentStepPointer = (type === 'email') ? 0 : 2;
-            renderActiveStep();
+        // View Toggling Controls
+        function toggleFormView(showSignup) {
+            document.getElementById('loginSection').classList.toggle('hidden', showSignup);
+            document.getElementById('signupSection').classList.toggle('hidden', !showSignup);
         }
 
-        function renderActiveStep() {
-            wizardStepSequence.forEach((stepId, index) => {
-                const element = document.getElementById(stepId);
-                if (index === currentStepPointer) {
-                    element.classList.add('active');
-                } else {
-                    element.classList.remove('active');
-                }
+        // Standard Login Operations Handler
+        async function handleFormLogin(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('loginIdentifier').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier, password })
+                });
+                const data = await res.json();
+                if (!res.ok) return alert(data.error);
+                
+                localStorage.setItem('user', JSON.stringify(data.user));
+                window.location.href = '/discover';
+            } catch (err) { alert("Could not reach backend identity server pipeline."); }
+        }
+
+        // Standard Sign-Up Operations Handler
+        async function handleFormSignup(e) {
+            e.preventDefault();
+            const name = document.getElementById('signName').value;
+            const username = document.getElementById('signUser').value;
+            const email = document.getElementById('signEmail').value;
+            const password = document.getElementById('signPass').value;
+            const secretAnswer = document.getElementById('signSecret').value;
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, username, email, password, secretAnswer })
+                });
+                const data = await res.json();
+                if (!res.ok) return alert(data.error);
+                
+                alert("Account created successfully! Please log in.");
+                toggleFormView(false);
+            } catch (err) { alert("Registration backend sequence connection failure."); }
+        }
+
+        // Google Identity Infrastructure Controls
+        function handleGoogleLoginClick() {
+            google.accounts.id.initialize({
+                client_id: CLIENT_ID,
+                callback: handleGoogleCredentialResponse
             });
+            google.accounts.id.prompt(); 
         }
 
-        function moveNext(inputElement) {
-            if (inputElement.value.length === 1) {
-                const nextEl = inputElement.nextElementSibling;
-                if (nextEl && nextEl.tagName === "INPUT") nextEl.focus();
-            }
-        }
-
-        async function executeStepForward() {
-            // Field validation checks before allowing progression
-            if (currentStepPointer === 0) {
-                const email = document.getElementById('reg-email').value.trim();
-                if (!email) { alert("Saisissez une adresse e-mail valide."); return; }
-            }
-            if (currentStepPointer === 2) {
-                const phone = document.getElementById('reg-phone').value.trim();
-                if (!phone) { alert("Saisissez un numéro de téléphone valide."); return; }
-            }
-
-            // Final configuration page trigger check
-            if (currentStepPointer === wizardStepSequence.length - 1) {
-                await finalRegistrationSubmission();
-                return;
-            }
-
-            currentStepPointer++;
-            renderActiveStep();
-        }
-
-        function cancelWizardView() {
-            if (currentStepPointer > 0 && currentStepPointer !== 2) {
-                currentStepPointer--;
-                renderActiveStep();
-            } else {
-                document.getElementById('functional-forms').style.display = 'none';
-                document.getElementById('oauth-gateways').style.display = 'flex';
-            }
-        }
-
-        async function finalRegistrationSubmission() {
-            const password = document.getElementById('reg-password').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const name = document.getElementById('reg-name').value.trim();
-            const username = document.getElementById('reg-username').value.trim();
-            const phonePrefix = document.getElementById('reg-phone-prefix').value;
-            const phoneNumberRaw = document.getElementById('reg-phone').value.trim();
-            const gender = document.getElementById('reg-gender').value.trim();
-            const bio = document.getElementById('reg-bio').value.trim();
-            
-            const questionSelect = document.getElementById('reg-question');
-            const selectedQuestion = questionSelect.options[questionSelect.selectedIndex].value;
-            const answerText = document.getElementById('reg-secret').value.trim();
-
-            if(!email || !password || !name || !username || !answerText) {
-                alert("Please complete all required verification credentials profile fields.");
-                return;
-            }
-
-            const combinedSecretAnswer = `Question: ${selectedQuestion} | Answer: ${answerText}`;
-            const completePhonePayload = phoneNumberRaw ? `${phonePrefix}${phoneNumberRaw}` : '';
-
-            const bodyData = {
-                email: email,
-                password: password,
-                name: name,
-                username: username,
-                phone_number: completePhonePayload,
-                gender: gender,
-                bio: bio,
-                secretAnswer: combinedSecretAnswer
-            };
-
+        async function handleGoogleCredentialResponse(response) {
             try {
-                const response = await fetch(`${API_URL}/signup`, {
+                const res = await fetch(`${BACKEND_URL}/api/google-login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bodyData)
+                    body: JSON.stringify({ token: response.credential })
                 });
-                const data = await response.json();
+                const data = await res.json();
+                if (!res.ok) return alert(data.error);
 
-                if (!response.ok) { alert(data.error || "Authentication failed."); return; }
-
-                CURRENT_USER_ID = data.user.id;
-                alert(`Welcome, ${data.user.name}!`);
-                
-                document.getElementById('auth-screen').style.display = "none";
-                document.getElementById('nav-header').style.display = "flex";
-                document.getElementById('dashboard-screen').style.display = "flex";
-                
-                loadDiscoverFeed();
-            } catch (error) { alert("Error connecting to database server pipeline."); }
-        }
-
-        async function loadDiscoverFeed() {
-            try {
-                const response = await fetch(`${API_URL}/users/discover?userId=${CURRENT_USER_ID}`);
-                const profiles = await response.json();
-                const feedContainer = document.getElementById('feed');
-                feedContainer.innerHTML = '';
-
-                if(profiles.length === 0) {
-                    feedContainer.innerHTML = '<p>No new profiles found!</p>';
-                    return;
-                }
-
-                profiles.forEach(user => {
-                    const pic = user.profile_pic_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=320&auto=format&fit=crop&q=80';
-                    const card = document.createElement('div');
-                    card.className = 'profile-card';
-                    card.innerHTML = `
-                        <img class="profile-pic" src="${pic}" alt="${user.name}">
-                        <div class="info">
-                            <p class="name">${user.name}</p>
-                            <p class="bio">${user.bio || 'No bio written yet.'}</p>
-                            <button class="like-btn" onclick="likeUser(${user.id}, '${user.name}')">❤️ Like</button>
-                        </div>
-                    `;
-                    feedContainer.appendChild(card);
-                });
-            } catch (error) { console.error(error); }
-        }
-
-        async function likeUser(likedId, name) {
-            try {
-                const response = await fetch(`${API_URL}/like`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ likerId: CURRENT_USER_ID, likedId: likedId })
-                });
-                const data = await response.json();
-                if (data.match) {
-                    alert(`🎉 IT'S A MUTUAL MATCH WITH ${name.toUpperCase()}!`);
-                    startChatRoom(likedId, name);
-                } else {
-                    alert("❤️ Like sent successfully!");
-                }
-                loadDiscoverFeed(); 
-            } catch (error) { console.error(error); }
-        }
-
-        function startChatRoom(userId, userName) {
-            activeChatUserId = userId;
-            document.getElementById('chat-with-title').innerText = `Chat with ${userName}`;
-            if(chatInterval) clearInterval(chatInterval);
-            loadChatMessages();
-            chatInterval = setInterval(loadChatMessages, 3000);
-        }
-
-        async function loadChatMessages() {
-            if (!activeChatUserId) return;
-            try {
-                const response = await fetch(`${API_URL}/messages?userOne=${CURRENT_USER_ID}&userTwo=${activeChatUserId}`);
-                const messages = await response.json();
-                const chatBox = document.getElementById('chat-box');
-                chatBox.innerHTML = '';
-                messages.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.className = msg.sender_id === CURRENT_USER_ID ? 'msg sent' : 'msg received';
-                    div.innerText = msg.message_text;
-                    chatBox.appendChild(div);
-                });
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } catch (error) { console.error(error); }
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('message-input');
-            const text = input.value.trim();
-            if (!text || !activeChatUserId) return;
-
-            try {
-                const response = await fetch(`${API_URL}/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ senderId: CURRENT_USER_ID, receiverId: activeChatUserId, messageText: text })
-                });
-                if (response.ok) { input.value = ''; loadChatMessages(); }
-            } catch (error) { console.error(error); }
-        }
-
-        function logout() {
-            if(chatInterval) clearInterval(chatInterval);
-            CURRENT_USER_ID = null;
-            activeChatUserId = null;
-            document.getElementById('auth-screen').style.display = "flex";
-            document.getElementById('oauth-gateways').style.display = "flex";
-            document.getElementById('functional-forms').style.display = "none";
-            document.getElementById('nav-header').style.display = "none";
-            document.getElementById('dashboard-screen').style.display = "none";
+                localStorage.setItem('user', JSON.stringify(data.user));
+                window.location.href = '/discover';
+            } catch (err) { alert("Could not complete verification pipeline checks with Google integration backend."); }
         }
     </script>
 </body>
