@@ -30,13 +30,14 @@
             gap: 15px;
         }
         .auth-container h2 { margin: 0 0 10px 0; color: #333; text-align: center; }
-        .auth-container input, .auth-container textarea {
+        .auth-container input, .auth-container textarea, .auth-container select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 0.95rem;
+            background-color: #fff;
         }
         .auth-btn {
             background-color: #e91e63;
@@ -123,6 +124,8 @@
         
         .nav-header { display: none; width: 100%; max-width: 1100px; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .logout-btn { background: none; border: 1px solid #e91e63; color: #e91e63; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        
+        .security-msg { margin: 5px 0 -5px 0; font-size: 0.85rem; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -139,19 +142,26 @@
         <input type="password" id="auth-password" placeholder="Password">
         
         <div id="signup-fields" style="display: none; flex-direction: column; gap: 15px; width: 100%;">
+            <input type="password" id="auth-confirm-password" placeholder="Confirm Password">
             <input type="email" id="auth-email" placeholder="Email Address">
             <input type="text" id="auth-name" placeholder="Full Name">
             <input type="text" id="auth-username" placeholder="Choose a Unique Username">
             <input type="text" id="auth-phone" placeholder="Phone Number (Optional)">
             <input type="text" id="auth-gender" placeholder="Gender">
             <textarea id="auth-bio" placeholder="Tell us about yourself..."></textarea>
-            <p style="margin: 5px 0 -5px 0; font-size: 0.85rem; color: #666; font-weight: bold;">Security Question: What is your hometown?</p>
-            <input type="text" id="auth-secret" placeholder="Your Answer (used for password reset)">
+            
+            <p class="security-msg">Select a Security Question:</p>
+            <select id="auth-question-select">
+                <option value="What is your hometown?">What is your hometown?</option>
+                <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+            </select>
+            <input type="text" id="auth-secret" placeholder="Your Security Answer">
         </div>
 
         <div id="reset-fields" style="display: none; flex-direction: column; gap: 15px; width: 100%;">
-            <p style="margin: 5px 0 -5px 0; font-size: 0.85rem; color: #666; font-weight: bold;">Security Check: What is your hometown?</p>
-            <input type="text" id="reset-secret" placeholder="Your Security Answer">
+            <p class="security-msg" style="margin-bottom: 2px;">Security verification check step:</p>
+            <input type="text" id="reset-secret" placeholder="Enter Your Security Answer">
             <input type="password" id="reset-new-password" placeholder="Enter New Password">
         </div>
 
@@ -271,6 +281,13 @@
                 if (!identifier) { alert("Please enter your login details."); return; }
                 bodyData = { identifier, password };
             } else {
+                // SignUp Validation Flow Routine
+                const confirmPassword = document.getElementById('auth-confirm-password').value.trim();
+                if (password !== confirmPassword) {
+                    alert("Validation Error: Passwords do not match.");
+                    return;
+                }
+
                 endpoint = '/signup';
                 bodyData = {
                     email: document.getElementById('auth-email').value.trim(),
