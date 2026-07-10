@@ -49,17 +49,28 @@ app.post('/api/login', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
 });
 
-// DISCOVER ROUTE
+// UPGRADED DISCOVER ROUTE: Filters out profiles already liked/swiped
 app.get('/api/users/discover', async (req, res) => {
   const currentUserId = req.query.userId;
   try {
     let queryText = 'SELECT id, name, birthday, gender, bio, profile_pic_url FROM users';
     let queryParams = [];
-    if (currentUserId) { queryText += ' WHERE id != $1'; queryParams.push(currentUserId); }
+    
+    if (currentUserId) {
+      // Select users who are NOT the current user AND whose IDs are NOT in the likes table as a liked target by this user
+      queryText += ` WHERE id != $1 AND id NOT IN (
+        SELECT liked_id FROM likes WHERE liker_id = $1
+      )`;
+      queryParams.push(currentUserId);
+    }
+    
     queryText += ' LIMIT 20';
     const result = await pool.query(queryText, queryParams);
     res.status(200).json(result.rows);
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
+  } catch (err) { 
+    console.error(err); 
+    res.status(500).json({ error: "Server error." }); 
+  }
 });
 
 // LIKE ROUTE
@@ -76,46 +87,27 @@ app.post('/api/like', async (req, res) => {
 // SEND MESSAGE ROUTE
 app.post('/api/messages', async (req, res) => {
   const { senderId, receiverId, messageText } = req.body;
-
-  if (!senderId || !receiverId || !messageText) {
-    return res.status(400).json({ error: "senderId, receiverId, and messageText are required." });
-  }
-
+  if (!senderId || !receiverId || !messageText) return res.status(400).json({ error: "Required fields missing." });
   try {
     const newMessage = await pool.query(
-      `INSERT INTO messages (sender_id, receiver_id, message_text) 
-       VALUES ($1, $2, $3) 
-       RETURNING *`,
+      `INSERT INTO messages (sender_id, receiver_id, message_text) VALUES ($1, $2, $3) RETURNING *`,
       [senderId, receiverId, messageText]
     );
     res.status(201).json(newMessage.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error sending message." });
-  }
+  } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
 });
 
-// GET CONVERSATION ROUTE: Fetch chat history between two users
+// GET CONVERSATION ROUTE
 app.get('/api/messages', async (req, res) => {
   const { userOne, userTwo } = req.query;
-
-  if (!userOne || !userTwo) {
-    return res.status(400).json({ error: "Both userOne and userTwo IDs are required as query params." });
-  }
-
+  if (!userOne || !userTwo) return res.status(400).json({ error: "User IDs required." });
   try {
     const conversation = await pool.query(
-      `SELECT * FROM messages 
-       WHERE (sender_id = $1 AND receiver_id = $2) 
-          OR (sender_id = $2 AND receiver_id = $1)
-       ORDER BY created_at ASC`,
+      `SELECT * FROM messages WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1) ORDER BY created_at ASC`,
       [userOne, userTwo]
     );
     res.status(200).json(conversation.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error retrieving chat history." });
-  }
+  } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
 });
 
 const PORT = process.env.PORT || 3000;

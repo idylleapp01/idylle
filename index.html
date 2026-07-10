@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idylle App - Discover</title>
+    <title>Idylle App - Discover & Chat</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -12,100 +12,168 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            padding: 20px;
             min-height: 100vh;
         }
         h1 {
             color: #e91e63;
-            margin-bottom: 20px;
         }
-        .feed-container {
+        .main-container {
             display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
+            gap: 40px;
+            max-width: 1100px;
+            width: 100%;
+            margin-top: 20px;
             justify-content: center;
-            max-width: 1000px;
-            padding: 20px;
+        }
+        /* Feed Section */
+        .feed-section {
+            flex: 1;
+            display: flex;
+            justify-content: center;
         }
         .profile-card {
             background: white;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 280px;
+            width: 320px;
             overflow: hidden;
             text-align: center;
-            padding-bottom: 15px;
-            transition: transform 0.2s;
-        }
-        .profile-card:hover {
-            transform: translateY(-5px);
+            padding-bottom: 20px;
         }
         .profile-pic {
             width: 100%;
-            height: 250px;
+            height: 280px;
             object-fit: cover;
             background-color: #ddd;
         }
-        .info {
-            padding: 15px;
-        }
-        .name {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #333;
-            margin: 0;
-        }
-        .bio {
-            color: #666;
-            font-size: 0.9rem;
-            margin: 10px 0;
-            min-height: 40px;
-        }
+        .info { padding: 15px; }
+        .name { font-size: 1.5rem; font-weight: bold; color: #333; margin: 0; }
+        .bio { color: #666; font-size: 0.95rem; margin: 10px 0; }
         .like-btn {
             background-color: #e91e63;
             color: white;
             border: none;
-            padding: 10px 25px;
-            border-radius: 20px;
+            padding: 12px 30px;
+            border-radius: 25px;
             font-size: 1rem;
             cursor: pointer;
             font-weight: bold;
-            transition: background 0.2s;
         }
-        .like-btn:hover {
-            background-color: #c2185b;
+        /* Chat Section */
+        .chat-section {
+            width: 380px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 480px;
+            overflow: hidden;
+        }
+        .chat-header {
+            background: #e91e63;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .msg {
+            padding: 10px 14px;
+            border-radius: 15px;
+            max-width: 75%;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .msg.sent {
+            background: #e91e63;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        .msg.received {
+            background: #e4e6eb;
+            color: #050505;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #eee;
+            background: white;
+        }
+        .chat-input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 10px 15px;
+            outline: none;
+            font-size: 0.9rem;
+        }
+        .send-btn {
+            background: none;
+            border: none;
+            color: #e91e63;
+            font-weight: bold;
+            padding: 0 15px;
+            cursor: pointer;
+            font-size: 1rem;
         }
     </style>
 </head>
 <body>
 
-    <h1>Idylle Matches</h1>
-    <div class="feed-container" id="feed">
+    <h1>Idylle Dashboard</h1>
+
+    <div class="main-container">
+        <div class="feed-section" id="feed">
+            <p>Loading your discover feed...</p>
         </div>
+
+        <div class="chat-section">
+            <div class="chat-header" id="chat-with-title">Chat Chat</div>
+            <div class="chat-messages" id="chat-box">
+                <p style="color: #999; text-align: center; margin-top: 50px;">Like a profile to start a match conversation!</p>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="message-input" class="chat-input" placeholder="Type a message...">
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const API_URL = 'https://idylle-backend.onrender.com/api';
-        // Simulating that we are logged in as Jane Doe (ID 1)
-        const CURRENT_USER_ID = 1; 
+        const CURRENT_USER_ID = 1; // Logged in as Jane Doe
+        let activeChatUserId = 2;  // Chatting with John Smith
 
-        // Fetch profiles from our Discover Endpoint
+        // 1. Load profiles into the discovery feed
         async function loadDiscoverFeed() {
             try {
                 const response = await fetch(`${API_URL}/users/discover?userId=${CURRENT_USER_ID}`);
                 const profiles = await response.json();
                 
                 const feedContainer = document.getElementById('feed');
-                feedContainer.innerHTML = ''; // Clear loading state
+                feedContainer.innerHTML = '';
 
                 if(profiles.length === 0) {
-                    feedContainer.innerHTML = '<p>No new profiles found nearby!</p>';
+                    feedContainer.innerHTML = '<p>No new profiles found!</p>';
                     return;
                 }
 
                 profiles.forEach(user => {
-                    // Use a fallback avatar image if the user doesn't have a profile picture url yet
-                    const pic = user.profile_pic_url || 'https://via.placeholder.com/280x250?text=No+Photo';
-                    
+                    const pic = user.profile_pic_url || 'https://via.placeholder.com/320x280?text=No+Photo';
                     const card = document.createElement('div');
                     card.className = 'profile-card';
                     card.innerHTML = `
@@ -113,43 +181,87 @@
                         <div class="info">
                             <p class="name">${user.name}</p>
                             <p class="bio">${user.bio || 'No bio written yet.'}</p>
-                            <button class="like-btn" onclick="likeUser(${user.id})">❤️ Like</button>
+                            <button class="like-btn" onclick="likeUser(${user.id}, '${user.name}')">❤️ Like</button>
                         </div>
                     `;
                     feedContainer.appendChild(card);
                 });
             } catch (error) {
-                console.error("Error loading feed:", error);
-                document.getElementById('feed').innerHTML = '<p>Error loading profiles. Make sure your Render server is awake!</p>';
+                console.error(error);
+                document.getElementById('feed').innerHTML = '<p>Error loading profiles.</p>';
             }
         }
 
-        // Action when clicking the Like button
-        async function likeUser(likedId) {
+        // 2. Handle Like Action & trigger active chat view on match
+        async function likeUser(likedId, name) {
             try {
                 const response = await fetch(`${API_URL}/like`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        likerId: CURRENT_USER_ID,
-                        likedId: likedId
-                    })
+                    body: JSON.stringify({ likerId: CURRENT_USER_ID, likedId: likedId })
                 });
-                
                 const data = await response.json();
                 
                 if (data.match) {
-                    alert("🎉 IT'S A MUTUAL MATCH! Go say hi!");
+                    alert(`🎉 IT'S A MUTUAL MATCH WITH ${name.toUpperCase()}!`);
+                    activeChatUserId = likedId;
+                    document.getElementById('chat-with-title').innerText = `Chat with ${name}`;
+                    loadChatMessages();
                 } else {
                     alert("❤️ Like sent successfully!");
                 }
-            } catch (error) {
-                console.error("Error liking user:", error);
-            }
+            } catch (error) { console.error(error); }
         }
 
-        // Initialize the app view
+        // 3. Load Chat Message log history dynamically
+        async function loadChatMessages() {
+            if (!activeChatUserId) return;
+            try {
+                const response = await fetch(`${API_URL}/messages?userOne=${CURRENT_USER_ID}&userTwo=${activeChatUserId}`);
+                const messages = await response.json();
+                
+                const chatBox = document.getElementById('chat-box');
+                chatBox.innerHTML = '';
+
+                messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.className = msg.sender_id === CURRENT_USER_ID ? 'msg sent' : 'msg received';
+                    div.innerText = msg.message_text;
+                    chatBox.appendChild(div);
+                });
+                
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (error) { console.error(error); }
+        }
+
+        // 4. Send Message from input form
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text || !activeChatUserId) return;
+
+            try {
+                const response = await fetch(`${API_URL}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        senderId: CURRENT_USER_ID,
+                        receiverId: activeChatUserId,
+                        messageText: text
+                    })
+                });
+
+                if (response.ok) {
+                    input.value = '';
+                    loadChatMessages();
+                }
+            } catch (error) { console.error(error); }
+        }
+
+        // Run Initializers on load
         loadDiscoverFeed();
+        document.getElementById('chat-with-title').innerText = "Chat with John Smith";
+        loadChatMessages();
     </script>
 </body>
 </html>
