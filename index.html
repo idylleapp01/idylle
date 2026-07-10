@@ -14,8 +14,9 @@
             align-items: center;
             padding: 20px;
             min-height: 100vh;
+            box-sizing: border-box;
         }
-        h1 { color: #e91e63; }
+        h1 { color: #e91e63; margin-top: 0; }
         
         .auth-container {
             background: white;
@@ -58,56 +59,69 @@
 
         .main-container {
             display: none; 
-            gap: 40px;
+            gap: 30px;
             max-width: 1100px;
             width: 100%;
             margin-top: 20px;
             justify-content: center;
+            align-items: flex-start;
         }
-        .feed-section { flex: 1; display: flex; justify-content: center; }
+        .feed-section { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
         .profile-card {
             background: white;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 320px;
+            width: 100%;
+            max-width: 360px;
             overflow: hidden;
             text-align: center;
             padding-bottom: 20px;
         }
-        .profile-pic { width: 100%; height: 280px; object-fit: cover; background-color: #ddd; }
+        .profile-pic { width: 100%; height: 320px; object-fit: cover; background-color: #ddd; }
         .info { padding: 15px; }
         .name { font-size: 1.5rem; font-weight: bold; color: #333; margin: 0; }
-        .bio { color: #666; font-size: 0.95rem; margin: 10px 0; }
+        .bio { color: #666; font-size: 0.95rem; margin: 10px 0; min-height: 40px; }
         .like-btn {
             background-color: #e91e63;
             color: white;
             border: none;
-            padding: 12px 30px;
+            padding: 12px 40px;
             border-radius: 25px;
             font-size: 1rem;
             cursor: pointer;
             font-weight: bold;
+            transition: transform 0.2s;
         }
+        .like-btn:active { transform: scale(0.95); }
+
         .chat-section {
-            width: 380px;
+            width: 400px;
             background: white;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            height: 480px;
+            height: 500px;
             overflow: hidden;
+            position: sticky;
+            top: 20px;
         }
         .chat-header { background: #e91e63; color: white; padding: 15px; font-weight: bold; font-size: 1.1rem; text-align: center; }
         .chat-messages { flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px 14px; border-radius: 15px; max-width: 75%; font-size: 0.9rem; line-height: 1.4; }
+        .msg { padding: 10px 14px; border-radius: 15px; max-width: 75%; font-size: 0.9rem; line-height: 1.4; word-break: break-word; }
         .msg.sent { background: #e91e63; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
         .msg.received { background: #e4e6eb; color: #050505; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .chat-input-area { display: flex; padding: 10px; border-top: 1px solid #eee; background: white; }
+        .chat-input-area { display: flex; padding: 12px; border-top: 1px solid #eee; background: white; gap: 8px; }
         .chat-input { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 10px 15px; outline: none; font-size: 0.9rem; }
-        .send-btn { background: none; border: none; color: #e91e63; font-weight: bold; padding: 0 15px; cursor: pointer; font-size: 1rem; }
+        .send-btn { background: none; border: none; color: #e91e63; font-weight: bold; padding: 0 10px; cursor: pointer; font-size: 1rem; }
         
-        .nav-header { display: none; width: 100%; max-width: 1100px; justify-content: space-between; align-items: center; }
+        .nav-header { display: none; width: 100%; max-width: 1100px; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .logout-btn { background: none; border: 1px solid #e91e63; color: #e91e63; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
@@ -125,6 +139,7 @@
         <input type="password" id="auth-password" placeholder="Password">
         
         <div id="signup-fields" style="display: none; flex-direction: column; gap: 15px; width: 100%;">
+            <input type="email" id="auth-email" placeholder="Email Address">
             <input type="text" id="auth-name" placeholder="Full Name">
             <input type="text" id="auth-username" placeholder="Choose a Unique Username">
             <input type="text" id="auth-phone" placeholder="Phone Number (Optional)">
@@ -166,7 +181,8 @@
         const API_URL = 'https://idylle-backend.onrender.com/api';
         let CURRENT_USER_ID = null; 
         let activeChatUserId = null;  
-        let currentMode = "login"; // "login", "signup", or "reset"
+        let currentMode = "login"; 
+        let chatInterval = null; 
 
         function toggleAuthMode() {
             const title = document.getElementById('auth-title');
@@ -179,7 +195,6 @@
             const forgotLink = document.getElementById('forgot-toggle');
 
             if (currentMode !== "login") {
-                // Switch back to Login Mode
                 currentMode = "login";
                 title.innerText = "Login to Idylle";
                 submitBtn.innerText = "Login";
@@ -187,18 +202,16 @@
                 signupFields.style.display = "none";
                 resetFields.style.display = "none";
                 identifierInput.style.display = "block";
-                identifierInput.placeholder = "Email, Username, or Phone Number";
                 passwordInput.style.display = "block";
                 forgotLink.style.display = "block";
             } else {
-                // Switch to Signup Mode
                 currentMode = "signup";
                 title.innerText = "Create an Account";
                 submitBtn.innerText = "Sign Up";
                 toggleText.innerText = "Already have an account? Log in";
                 signupFields.style.display = "flex";
                 resetFields.style.display = "none";
-                identifierInput.placeholder = "Email Address";
+                identifierInput.style.display = "none";
                 passwordInput.style.display = "block";
                 forgotLink.style.display = "none";
             }
@@ -213,14 +226,14 @@
             document.getElementById('signup-fields').style.display = "none";
             document.getElementById('reset-fields').style.display = "flex";
             
+            document.getElementById('auth-identifier').style.display = "block";
             document.getElementById('auth-identifier').placeholder = "Email, Username, or Phone Number";
-            document.getElementById('auth-password').style.display = "none"; // Not needed during entry
+            document.getElementById('auth-password').style.display = "none"; 
             document.getElementById('forgot-toggle').style.display = "none";
         }
 
         async function handleAuthSubmit() {
             if (currentMode === "reset") {
-                // Handle Password Reset Request
                 const identifier = document.getElementById('auth-identifier').value.trim();
                 const secretAnswer = document.getElementById('reset-secret').value.trim();
                 const newPassword = document.getElementById('reset-new-password').value.trim();
@@ -240,13 +253,12 @@
                     alert(data.message || data.error);
 
                     if (response.ok) {
-                        toggleAuthMode(); // Send back to login card state
+                        toggleAuthMode(); 
                     }
                 } catch (error) { console.error(error); alert("Server communication error."); }
                 return;
             }
 
-            // Normal Login/Signup processing block
             const password = document.getElementById('auth-password').value.trim();
             if (!password) { alert("Password is required."); return; }
 
@@ -261,7 +273,7 @@
             } else {
                 endpoint = '/signup';
                 bodyData = {
-                    email: document.getElementById('auth-identifier').value.trim(),
+                    email: document.getElementById('auth-email').value.trim(),
                     password: password,
                     name: document.getElementById('auth-name').value.trim(),
                     username: document.getElementById('auth-username').value.trim(),
@@ -340,14 +352,20 @@
                 
                 if (data.match) {
                     alert(`🎉 IT'S A MUTUAL MATCH WITH ${name.toUpperCase()}!`);
-                    activeChatUserId = likedId;
-                    document.getElementById('chat-with-title').innerText = `Chat with ${name}`;
-                    loadChatMessages();
+                    startChatRoom(likedId, name);
                 } else {
                     alert("❤️ Like sent successfully!");
                 }
                 loadDiscoverFeed(); 
             } catch (error) { console.error(error); }
+        }
+
+        function startChatRoom(userId, userName) {
+            activeChatUserId = userId;
+            document.getElementById('chat-with-title').innerText = `Chat with ${userName}`;
+            if(chatInterval) clearInterval(chatInterval);
+            loadChatMessages();
+            chatInterval = setInterval(loadChatMessages, 3000);
         }
 
         async function loadChatMessages() {
@@ -393,6 +411,7 @@
         }
 
         function logout() {
+            if(chatInterval) clearInterval(chatInterval);
             CURRENT_USER_ID = null;
             activeChatUserId = null;
             currentMode = "login";
