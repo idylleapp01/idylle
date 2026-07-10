@@ -87,7 +87,7 @@ app.post('/api/signup', async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Explicitly structural binding layout mapping prevents positional order discrepancies
+        // Explicit structural binding layout mapping prevents positional order discrepancies
         const result = await pool.query(
             `INSERT INTO users (
                 email, 
@@ -122,7 +122,7 @@ app.post('/api/signup', async (req, res) => {
     }
 });
 
-// Login Route
+// Login Route (Supports logging in with email, username, or phone number)
 app.post('/api/login', async (req, res) => {
     const { identifier, password } = req.body;
 
@@ -133,7 +133,7 @@ app.post('/api/login', async (req, res) => {
     try {
         const userCheck = await pool.query(
             `SELECT * FROM users WHERE email = $1 OR username = $2 OR phone_number = $3`,
-            [identifier.toLowerCase(), identifier.toLowerCase(), identifier]
+            [identifier.toLowerCase().trim(), identifier.toLowerCase().trim(), identifier.trim()]
         );
 
         if (userCheck.rows.length === 0) {
@@ -168,7 +168,7 @@ app.post('/api/reset-password', async (req, res) => {
     try {
         const userCheck = await pool.query(
             `SELECT * FROM users WHERE email = $1 OR username = $2 OR phone_number = $3`,
-            [identifier.toLowerCase(), identifier.toLowerCase(), identifier]
+            [identifier.toLowerCase().trim(), identifier.toLowerCase().trim(), identifier.trim()]
         );
 
         if (userCheck.rows.length === 0) {
