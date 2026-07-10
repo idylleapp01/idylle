@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/idylleapp01/idylle#readme",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "pg": "^8.22.0"
