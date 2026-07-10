@@ -11,33 +11,41 @@ const PORT = process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// Database Connection
+// Database Connection Setup
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
-// Initialize Database Tables
+// Initialize and Migrate Database Tables Dynamically
 async function initDB() {
     try {
-        // Users Table Setup
+        // 1. Core Users Table Base Setup
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 email VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
                 name VARCHAR(255) NOT NULL,
                 username VARCHAR(255) UNIQUE NOT NULL,
-                phone_number VARCHAR(50),
-                gender VARCHAR(50),
-                bio TEXT,
-                profile_pic_url TEXT,
-                secret_answer TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
 
-        // Likes Table Setup
+        // 2. Combined Robust Migration Checks (Guarantees missing columns are appended safely)
+        const alterQueries = [
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50);`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(50);`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic_url TEXT;`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS secret_answer TEXT;`
+        ];
+
+        for (const query of alterQueries) {
+            await pool.query(query);
+        }
+
+        // 3. Likes Interaction Table Setup
         await pool.query(`
             CREATE TABLE IF NOT EXISTS likes (
                 id SERIAL PRIMARY KEY,
@@ -48,7 +56,7 @@ async function initDB() {
             );
         `);
 
-        // Messages Table Setup
+        // 4. Chat Messages History Table Setup
         await pool.query(`
             CREATE TABLE IF NOT EXISTS messages (
                 id SERIAL PRIMARY KEY,
@@ -59,16 +67,16 @@ async function initDB() {
             );
         `);
 
-        console.log("Database structure checked and fully initialized.");
+        console.log("Database tables checked, updated, and verified successfully.");
     } catch (err) {
-        console.error("Database initialization error:", err);
+        console.error("Database initialization/migration error:", err);
     }
 }
 initDB();
 
 /* ================= AUTHENTICATION ENDPOINTS ================= */
 
-// Signup Route
+// Signup Route (Accepts multi-step flow registration parameters)
 app.post('/api/signup', async (req, res) => {
     const { email, password, name, username, phone_number, gender, bio, secretAnswer } = req.body;
 
@@ -90,7 +98,7 @@ app.post('/api/signup', async (req, res) => {
         if (err.code === '23505') {
             return res.status(400).json({ error: "Email or username already exists in our system." });
         }
-        console.error(err);
+        console.error("Signup error details:", err);
         res.status(500).json({ error: "Internal server error during registration." });
     }
 });
@@ -150,7 +158,6 @@ app.post('/api/reset-password', async (req, res) => {
 
         const user = userCheck.rows[0];
 
-        // Match security answers
         if (user.secret_answer !== secretAnswer) {
             return res.status(400).json({ error: "Security answer verification failed." });
         }
@@ -165,7 +172,7 @@ app.post('/api/reset-password', async (req, res) => {
     }
 });
 
-/* ================= PLATFORM & CORE INTERACTION ENDPOINTS ================= */
+/* ================= CORE INTERACTION ENDPOINTS ================= */
 
 // Get Discovery Feed Profiles Route
 app.get('/api/users/discover', async (req, res) => {
@@ -176,7 +183,6 @@ app.get('/api/users/discover', async (req, res) => {
     }
 
     try {
-        // Query users not liked yet and not the active user
         const discoverProfiles = await pool.query(
             `SELECT id, name, username, bio, profile_pic_url FROM users 
              WHERE id != $1 AND id NOT IN (
@@ -201,13 +207,11 @@ app.post('/api/like', async (req, res) => {
     }
 
     try {
-        // Add like record
         await pool.query(
             `INSERT INTO likes (liker_id, liked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
             [likerId, likedId]
         );
 
-        // Mutual Match Verification Check
         const reverseMatchCheck = await pool.query(
             `SELECT * FROM likes WHERE liker_id = $1 AND liked_id = $2`,
             [likedId, likerId]
@@ -217,16 +221,16 @@ app.post('/api/like', async (req, res) => {
         res.status(200).json({ success: true, match: isMatch });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Internal server error record payload like parameters." });
+        res.status(500).json({ error: "Internal server error recording swipe data parameters." });
     }
 });
 
-// Get Live Room Chat Messages Route
+// Get Room Chat Messages Route
 app.get('/api/messages', async (req, res) => {
     const { userOne, userTwo } = req.query;
 
     if (!userOne || !userTwo) {
-        return res.status(400).json({ error: "Chat workspace identity context targets missing." });
+        return res.status(400).json({ error: "Chat workspace targets missing." });
     }
 
     try {
@@ -249,7 +253,7 @@ app.post('/api/messages', async (req, res) => {
     const { senderId, receiverId, messageText } = req.body;
 
     if (!senderId || !receiverId || !messageText) {
-        return res.status(400).json({ error: "Incomplete target data message inputs payload parameters." });
+        return res.status(400).json({ error: "Incomplete target data message inputs." });
     }
 
     try {
@@ -268,5 +272,5 @@ app.post('/api/messages', async (req, res) => {
 
 // Start Server Listen Instance
 app.listen(PORT, () => {
-    console.log(`Server executing active tasks smoothly on routing interface port ${PORT}`);
+    console.log(`Server executing successfully on port ${PORT}`);
 });
