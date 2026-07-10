@@ -1,11 +1,11 @@
 const express = require('express');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
-const cors = require('cors'); // 1. Import CORS
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors()); // 2. Enable CORS for all routes
+app.use(cors());
 app.use(express.json());
 
 const pool = new Pool({
@@ -73,18 +73,49 @@ app.post('/api/like', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
 });
 
-// PROFILE UPDATE ROUTE
-app.put('/api/profile/update', async (req, res) => {
-  const { userId, bio, profilePicUrl, gender } = req.body;
-  if (!userId) return res.status(400).json({ error: "userId is required." });
+// SEND MESSAGE ROUTE
+app.post('/api/messages', async (req, res) => {
+  const { senderId, receiverId, messageText } = req.body;
+
+  if (!senderId || !receiverId || !messageText) {
+    return res.status(400).json({ error: "senderId, receiverId, and messageText are required." });
+  }
+
   try {
-    const updatedUser = await pool.query(
-      `UPDATE users SET bio = COALESCE($1, bio), profile_pic_url = COALESCE($2, profile_pic_url), gender = COALESCE($3, gender) WHERE id = $4 RETURNING id, name, bio, profile_pic_url, gender`,
-      [bio, profilePicUrl, gender, userId]
+    const newMessage = await pool.query(
+      `INSERT INTO messages (sender_id, receiver_id, message_text) 
+       VALUES ($1, $2, $3) 
+       RETURNING *`,
+      [senderId, receiverId, messageText]
     );
-    if (updatedUser.rows.length === 0) return res.status(404).json({ error: "User not found." });
-    res.status(200).json({ message: "Profile updated successfully!", user: updatedUser.rows[0] });
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
+    res.status(201).json(newMessage.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error sending message." });
+  }
+});
+
+// GET CONVERSATION ROUTE: Fetch chat history between two users
+app.get('/api/messages', async (req, res) => {
+  const { userOne, userTwo } = req.query;
+
+  if (!userOne || !userTwo) {
+    return res.status(400).json({ error: "Both userOne and userTwo IDs are required as query params." });
+  }
+
+  try {
+    const conversation = await pool.query(
+      `SELECT * FROM messages 
+       WHERE (sender_id = $1 AND receiver_id = $2) 
+          OR (sender_id = $2 AND receiver_id = $1)
+       ORDER BY created_at ASC`,
+      [userOne, userTwo]
+    );
+    res.status(200).json(conversation.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error retrieving chat history." });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
