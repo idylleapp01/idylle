@@ -6,9 +6,11 @@
     <title>Idylle - Real Connections</title>
     <style>
         :root {
-            --bg-color: #ebdff2; /* Pastel lavender theme match */
+            --bg-color: #ebdff2; 
             --primary-accent: #e91e63;
             --text-dark: #111111;
+            --wizard-bg: #111111; /* Dark aesthetic matching screenshots */
+            --wizard-text: #ffffff;
         }
 
         body {
@@ -88,42 +90,130 @@
             fill: currentColor;
         }
 
-        /* Legacy Form Container (Hidden until entry selection is clicked) */
+        /* Multi-step Dark Wizard Container */
         .form-box {
-            background: white;
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            background: var(--wizard-bg);
+            color: var(--wizard-text);
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
             width: 100%;
+            max-width: 400px;
             box-sizing: border-box;
             display: none;
             flex-direction: column;
-            gap: 14px;
+            min-height: 480px;
+            justify-content: space-between;
         }
-        .form-box h3 {
-            margin: 0 0 5px 0;
-            text-align: center;
-            color: #333;
-        }
-        .form-box input, .form-box textarea, .form-box select {
+
+        .wizard-step {
+            display: none;
+            flex-direction: column;
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-sizing: border-box;
-            font-size: 0.95rem;
-            background-color: #fafafa;
         }
-        .submit-action-btn {
-            background-color: var(--primary-accent);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 25px;
+        .wizard-step.active {
+            display: flex;
+        }
+
+        .wizard-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 0 0 12px 0;
+            letter-spacing: -0.5px;
+        }
+        .wizard-desc {
+            font-size: 0.95rem;
+            color: #b3b3b3;
+            line-height: 1.5;
+            margin: 0 0 24px 0;
+        }
+
+        /* Modern Inputs */
+        .wizard-input {
+            width: 100%;
+            background: #000000;
+            border: 1.5px solid #333333;
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 12px;
             font-size: 1rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .wizard-input:focus {
+            border-color: #ffffff;
+        }
+
+        /* Verification Code Layout */
+        .code-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        .code-box {
+            width: 50px;
+            height: 54px;
+            background: #000000;
+            border: 1.5px solid #333333;
+            color: #ffffff;
+            text-align: center;
+            font-size: 1.5rem;
             font-weight: bold;
+            border-radius: 10px;
+            outline: none;
+        }
+        .code-box:focus {
+            border-color: #ffffff;
+        }
+
+        /* Dropdown Phone Prefix Setup */
+        .phone-row {
+            display: flex;
+            gap: 10px;
+        }
+        .prefix-select {
+            width: 100px;
+            background: #000000;
+            border: 1.5px solid #333333;
+            color: #ffffff;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+        }
+
+        /* Wizard Actions */
+        .wizard-footer {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        .next-action-btn {
+            width: 100%;
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 16px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 700;
             cursor: pointer;
-            margin-top: 5px;
+            transition: background-color 0.2s;
+        }
+        .next-action-btn:hover {
+            background-color: #e5e5e5;
+        }
+
+        .resend-link {
+            color: #3b82f6;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
         }
 
         .footer-notice {
@@ -133,15 +223,14 @@
             margin-top: 25px;
         }
         .toggle-link {
-            color: var(--primary-accent);
+            color: #ffffff;
             text-align: center;
             cursor: pointer;
             font-size: 0.9rem;
             text-decoration: underline;
-            margin-top: 5px;
         }
 
-        /* App Dashboard Workspace Area */
+        /* Main Workspace App Feed Area */
         .main-container {
             display: none; 
             gap: 30px;
@@ -205,7 +294,6 @@
         
         .nav-header { display: none; width: 100%; max-width: 1100px; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .logout-btn { background: none; border: 1px solid var(--primary-accent); color: var(--primary-accent); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; }
-        .security-msg { margin: 5px 0 -5px 0; font-size: 0.85rem; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -223,12 +311,12 @@
         </div>
 
         <div class="auth-container" id="oauth-gateways">
-            <button class="pill-btn" onclick="alert('Phone registration feature coming soon!')">
+            <button class="pill-btn" onclick="revealWizardFlow('phone')">
                 <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
                 Continue with mobile
             </button>
             
-            <button class="pill-btn" onclick="revealEmailForm()">
+            <button class="pill-btn" onclick="revealWizardFlow('email')">
                 <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
                 Continue with email
             </button>
@@ -242,41 +330,84 @@
         </div>
 
         <div class="form-box" id="functional-forms">
-            <h3 id="form-box-title">Login</h3>
             
-            <input type="text" id="auth-identifier" placeholder="Email, Username, or Phone Number">
-            <input type="password" id="auth-password" placeholder="Password">
-            
-            <div id="signup-fields" style="display: none; flex-direction: column; gap: 14px; width: 100%;">
-                <input type="password" id="auth-confirm-password" placeholder="Confirm Password">
-                <input type="email" id="auth-email" placeholder="Email Address">
-                <input type="text" id="auth-name" placeholder="Full Name">
-                <input type="text" id="auth-username" placeholder="Choose a Unique Username">
-                <input type="text" id="auth-phone" placeholder="Phone Number (Optional)">
-                <input type="text" id="auth-gender" placeholder="Gender">
-                <textarea id="auth-bio" placeholder="Tell us about yourself..."></textarea>
+            <div class="wizard-body">
                 
-                <p class="security-msg">Select a Security Question:</p>
-                <select id="auth-question-select">
-                    <option value="What is your hometown?">What is your hometown?</option>
-                    <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-                    <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-                    <option value="What was the model of your first car?">What was the model of your first car?</option>
-                    <option value="What was the name of your elementary school?">What was the name of your elementary school?</option>
-                    <option value="In what city did your parents meet?">In what city did your parents meet?</option>
-                </select>
-                <input type="text" id="auth-secret" placeholder="Your Security Answer">
+                <div class="wizard-step" id="step-email-input">
+                    <h2 class="wizard-title">Mon adresse e-mail</h2>
+                    <p class="wizard-desc">On va t'envoyer un code pour vérifier ton adresse e-mail. Pense à regarder dans tes spams, au cas où tu ne verrais pas l'e-mail.</p>
+                    <input type="email" id="reg-email" class="wizard-input" placeholder="nom@exemple.com">
+                </div>
+
+                <div class="wizard-step" id="step-email-code">
+                    <h2 class="wizard-title">Saisissez votre code</h2>
+                    <p class="wizard-desc">On a envoyé un code d'accès à usage unique à l'adresse renseignée. Le code expirera dans 10 minutes.</p>
+                    <div class="code-container">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                    </div>
+                    <p class="resend-link" onclick="alert('Code renvoyé !')">Renvoyer par e-mail</p>
+                </div>
+
+                <div class="wizard-step" id="step-phone-input">
+                    <h2 class="wizard-title">Quel est ton numéro de téléphone ?</h2>
+                    <p class="wizard-desc">On va t'envoyer un code pour vérifier ton numéro de téléphone. Des frais d'envoi de messages et d'utilisation des données peuvent s'appliquer.</p>
+                    <div class="phone-row">
+                        <select class="prefix-select" id="reg-phone-prefix">
+                            <option value="+34">ES +34</option>
+                            <option value="+33">FR +33</option>
+                            <option value="+1">US +1</option>
+                            <option value="+234">NG +234</option>
+                        </select>
+                        <input type="tel" id="reg-phone" class="wizard-input" placeholder="Numéro de téléphone">
+                    </div>
+                </div>
+
+                <div class="wizard-step" id="step-phone-code">
+                    <h2 class="wizard-title">Saisissez votre code</h2>
+                    <p class="wizard-desc">On a envoyé un code d'accès à usage unique au numéro de téléphone indiqué. Le code expirera dans 5 minutes.</p>
+                    <div class="code-container">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                        <input type="text" maxlength="1" class="code-box" oninput="moveNext(this)">
+                    </div>
+                    <p class="resend-link" onclick="alert('Code SMS renvoyé !')">Renvoyer par SMS</p>
+                </div>
+
+                <div class="wizard-step" id="step-profile-setup">
+                    <h2 class="wizard-title">Profile Configuration</h2>
+                    <p class="wizard-desc">Complete your credentials details below to finalize creating your profile security setup.</p>
+                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                        <input type="text" id="reg-name" class="wizard-input" placeholder="Full Name">
+                        <input type="text" id="reg-username" class="wizard-input" placeholder="Choose a Unique Username">
+                        <input type="password" id="reg-password" class="wizard-input" placeholder="Create Secure Password">
+                        <input type="text" id="reg-gender" class="wizard-input" placeholder="Gender">
+                        <textarea id="reg-bio" class="wizard-input" placeholder="Tell us about yourself..." style="height: 70px; resize: none;"></textarea>
+                        
+                        <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: #bbb;">Security Question Menu:</p>
+                        <select id="reg-question" class="wizard-input" style="background:#000;">
+                            <option value="What is your hometown?">What is your hometown?</option>
+                            <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+                            <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                        </select>
+                        <input type="text" id="reg-secret" class="wizard-input" placeholder="Your Security Answer">
+                    </div>
+                </div>
+
             </div>
 
-            <div id="reset-fields" style="display: none; flex-direction: column; gap: 14px; width: 100%;">
-                <input type="text" id="reset-secret" placeholder="Enter Your Security Answer">
-                <input type="password" id="reset-new-password" placeholder="Enter New Password">
+            <div class="wizard-footer">
+                <button class="next-action-btn" onclick="executeStepForward()">Suivant</button>
+                <p class="toggle-link" onclick="cancelWizardView()">← Annuler / Retour</p>
             </div>
 
-            <button class="submit-action-btn" id="auth-submit-btn" onclick="handleAuthSubmit()">Login</button>
-            <p class="toggle-link" id="auth-toggle" onclick="toggleAuthMode()">Don't have an account? Sign up</p>
-            <p class="toggle-link" id="forgot-toggle" style="color: #666; font-size: 0.8rem;" onclick="switchToResetMode()">Forgot Password?</p>
-            <p class="toggle-link" style="color: #999; font-size: 0.8rem;" onclick="cancelFormView()">← Go Back</p>
         </div>
 
     </div>
@@ -302,130 +433,111 @@
         const API_URL = 'https://idylle-backend.onrender.com/api';
         let CURRENT_USER_ID = null; 
         let activeChatUserId = null;  
-        let currentMode = "login"; 
         let chatInterval = null; 
 
-        function revealEmailForm() {
+        // Registration Steps Routing Data Queue Matrix
+        const wizardStepSequence = [
+            'step-email-input',
+            'step-email-code',
+            'step-phone-input',
+            'step-phone-code',
+            'step-profile-setup'
+        ];
+        let currentStepPointer = 0;
+
+        function revealWizardFlow(type) {
             document.getElementById('oauth-gateways').style.display = 'none';
             document.getElementById('functional-forms').style.display = 'flex';
-            currentMode = "login";
-            setupFormDisplay();
+            
+            // Set default initial path starting point based on chosen pill button choice
+            currentStepPointer = (type === 'email') ? 0 : 2;
+            renderActiveStep();
         }
 
-        function cancelFormView() {
-            document.getElementById('functional-forms').style.display = 'none';
-            document.getElementById('oauth-gateways').style.display = 'flex';
+        function renderActiveStep() {
+            wizardStepSequence.forEach((stepId, index) => {
+                const element = document.getElementById(stepId);
+                if (index === currentStepPointer) {
+                    element.classList.add('active');
+                } else {
+                    element.classList.remove('active');
+                }
+            });
         }
 
-        function toggleAuthMode() {
-            currentMode = (currentMode === "login") ? "signup" : "login";
-            setupFormDisplay();
-        }
-
-        function setupFormDisplay() {
-            const title = document.getElementById('form-box-title');
-            const submitBtn = document.getElementById('auth-submit-btn');
-            const toggleText = document.getElementById('auth-toggle');
-            const signupFields = document.getElementById('signup-fields');
-            const resetFields = document.getElementById('reset-fields');
-            const identifierInput = document.getElementById('auth-identifier');
-            const passwordInput = document.getElementById('auth-password');
-            const forgotLink = document.getElementById('forgot-toggle');
-
-            if (currentMode === "login") {
-                title.innerText = "Login to Idylle";
-                submitBtn.innerText = "Login";
-                toggleText.innerText = "Don't have an account? Sign up";
-                signupFields.style.display = "none";
-                resetFields.style.display = "none";
-                identifierInput.style.display = "block";
-                passwordInput.style.display = "block";
-                forgotLink.style.display = "block";
-            } else if (currentMode === "signup") {
-                title.innerText = "Create an Account";
-                submitBtn.innerText = "Sign Up";
-                toggleText.innerText = "Already have an account? Log in";
-                signupFields.style.display = "flex";
-                resetFields.style.display = "none";
-                identifierInput.style.display = "none";
-                passwordInput.style.display = "block";
-                forgotLink.style.display = "none";
+        function moveNext(inputElement) {
+            if (inputElement.value.length === 1) {
+                const nextEl = inputElement.nextElementSibling;
+                if (nextEl && nextEl.tagName === "INPUT") nextEl.focus();
             }
         }
 
-        function switchToResetMode() {
-            currentMode = "reset";
-            document.getElementById('form-box-title').innerText = "Reset Password";
-            document.getElementById('auth-submit-btn').innerText = "Change Password";
-            document.getElementById('auth-toggle').innerText = "Back to Login";
-            
-            document.getElementById('signup-fields').style.display = "none";
-            document.getElementById('reset-fields').style.display = "flex";
-            
-            document.getElementById('auth-identifier').style.display = "block";
-            document.getElementById('auth-identifier').placeholder = "Email, Username, or Phone Number";
-            document.getElementById('auth-password').style.display = "none"; 
-            document.getElementById('forgot-toggle').style.display = "none";
-        }
+        async function executeStepForward() {
+            // Field validation checks before allowing progression
+            if (currentStepPointer === 0) {
+                const email = document.getElementById('reg-email').value.trim();
+                if (!email) { alert("Saisissez une adresse e-mail valide."); return; }
+            }
+            if (currentStepPointer === 2) {
+                const phone = document.getElementById('reg-phone').value.trim();
+                if (!phone) { alert("Saisissez un numéro de téléphone valide."); return; }
+            }
 
-        async function handleAuthSubmit() {
-            if (currentMode === "reset") {
-                const identifier = document.getElementById('auth-identifier').value.trim();
-                const secretAnswer = document.getElementById('reset-secret').value.trim();
-                const newPassword = document.getElementById('reset-new-password').value.trim();
-
-                if (!identifier || !secretAnswer || !newPassword) {
-                    alert("Please fill in all recovery fields.");
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`${API_URL}/reset-password`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ identifier, secretAnswer, newPassword })
-                    });
-                    const data = await response.json();
-                    alert(data.message || data.error);
-                    if (response.ok) { currentMode = "login"; setupFormDisplay(); }
-                } catch (error) { alert("Server communication error."); }
+            // Final configuration page trigger check
+            if (currentStepPointer === wizardStepSequence.length - 1) {
+                await finalRegistrationSubmission();
                 return;
             }
 
-            const password = document.getElementById('auth-password').value.trim();
-            if (!password) { alert("Password is required."); return; }
+            currentStepPointer++;
+            renderActiveStep();
+        }
 
-            let endpoint = '';
-            let bodyData = {};
-
-            if (currentMode === "login") {
-                endpoint = '/login';
-                const identifier = document.getElementById('auth-identifier').value.trim();
-                if (!identifier) { alert("Please enter your login details."); return; }
-                bodyData = { identifier, password };
+        function cancelWizardView() {
+            if (currentStepPointer > 0 && currentStepPointer !== 2) {
+                currentStepPointer--;
+                renderActiveStep();
             } else {
-                const confirmPassword = document.getElementById('auth-confirm-password').value.trim();
-                if (password !== confirmPassword) { alert("Passwords do not match."); return; }
+                document.getElementById('functional-forms').style.display = 'none';
+                document.getElementById('oauth-gateways').style.display = 'flex';
+            }
+        }
 
-                endpoint = '/signup';
-                bodyData = {
-                    email: document.getElementById('auth-email').value.trim(),
-                    password: password,
-                    name: document.getElementById('auth-name').value.trim(),
-                    username: document.getElementById('auth-username').value.trim(),
-                    phone_number: document.getElementById('auth-phone').value.trim(),
-                    gender: document.getElementById('auth-gender').value.trim(),
-                    bio: document.getElementById('auth-bio').value.trim(),
-                    secretAnswer: document.getElementById('auth-secret').value.trim()
-                };
-                if(!bodyData.email || !bodyData.name || !bodyData.username || !bodyData.secretAnswer) { 
-                    alert("Required fields are missing."); 
-                    return; 
-                }
+        async function finalRegistrationSubmission() {
+            const password = document.getElementById('reg-password').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const name = document.getElementById('reg-name').value.trim();
+            const username = document.getElementById('reg-username').value.trim();
+            const phonePrefix = document.getElementById('reg-phone-prefix').value;
+            const phoneNumberRaw = document.getElementById('reg-phone').value.trim();
+            const gender = document.getElementById('reg-gender').value.trim();
+            const bio = document.getElementById('reg-bio').value.trim();
+            
+            const questionSelect = document.getElementById('reg-question');
+            const selectedQuestion = questionSelect.options[questionSelect.selectedIndex].value;
+            const answerText = document.getElementById('reg-secret').value.trim();
+
+            if(!email || !password || !name || !username || !answerText) {
+                alert("Please complete all required verification credentials profile fields.");
+                return;
             }
 
+            const combinedSecretAnswer = `Question: ${selectedQuestion} | Answer: ${answerText}`;
+            const completePhonePayload = phoneNumberRaw ? `${phonePrefix}${phoneNumberRaw}` : '';
+
+            const bodyData = {
+                email: email,
+                password: password,
+                name: name,
+                username: username,
+                phone_number: completePhonePayload,
+                gender: gender,
+                bio: bio,
+                secretAnswer: combinedSecretAnswer
+            };
+
             try {
-                const response = await fetch(`${API_URL}${endpoint}`, {
+                const response = await fetch(`${API_URL}/signup`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(bodyData)
@@ -442,7 +554,7 @@
                 document.getElementById('dashboard-screen').style.display = "flex";
                 
                 loadDiscoverFeed();
-            } catch (error) { alert("Error connecting to server."); }
+            } catch (error) { alert("Error connecting to database server pipeline."); }
         }
 
         async function loadDiscoverFeed() {
