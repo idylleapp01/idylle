@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
-const bcrypt = require('bcryptjs'); // Updated to bcryptjs for absolute platform stability
+const bcrypt = require('bcryptjs'); // Pure JS module for absolute cross-platform stability
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -33,7 +33,7 @@ async function initDB() {
 
         // 2. Combined Robust Migration Checks (Guarantees missing columns are appended safely)
         const alterQueries = [
-            `ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50);`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(50);`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;`,
@@ -87,8 +87,9 @@ app.post('/api/signup', async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         
+        // Target column mapped cleanly to password_hash to comply with database constraints
         const result = await pool.query(
-            `INSERT INTO users (email, password, name, username, phone_number, gender, bio, secret_answer) 
+            `INSERT INTO users (email, password_hash, name, username, phone_number, gender, bio, secret_answer) 
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, username, email`,
             [email.toLowerCase(), hashedPassword, name, username.toLowerCase(), phone_number, gender, bio, secretAnswer]
         );
@@ -122,7 +123,8 @@ app.post('/api/login', async (req, res) => {
         }
 
         const user = userCheck.rows[0];
-        const passMatch = await bcrypt.compare(password, user.password);
+        // Compare password input safely with the database password_hash records
+        const passMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!passMatch) {
             return res.status(400).json({ error: "Invalid credentials." });
@@ -163,7 +165,7 @@ app.post('/api/reset-password', async (req, res) => {
         }
 
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-        await pool.query(`UPDATE users SET password = $1 WHERE id = $2`, [hashedNewPassword, user.id]);
+        await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hashedNewPassword, user.id]);
 
         res.status(200).json({ message: "Password updated successfully." });
     } catch (err) {
