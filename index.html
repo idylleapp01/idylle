@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idylle App - Discover</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #e91e63;
+            margin-bottom: 20px;
+        }
+        .feed-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1000px;
+            padding: 20px;
+        }
+        .profile-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 280px;
+            overflow: hidden;
+            text-align: center;
+            padding-bottom: 15px;
+            transition: transform 0.2s;
+        }
+        .profile-card:hover {
+            transform: translateY(-5px);
+        }
+        .profile-pic {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            background-color: #ddd;
+        }
+        .info {
+            padding: 15px;
+        }
+        .name {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+        .bio {
+            color: #666;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            min-height: 40px;
+        }
+        .like-btn {
+            background-color: #e91e63;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .like-btn:hover {
+            background-color: #c2185b;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Idylle Matches</h1>
+    <div class="feed-container" id="feed">
+        </div>
+
+    <script>
+        const API_URL = 'https://idylle-backend.onrender.com/api';
+        // Simulating that we are logged in as Jane Doe (ID 1)
+        const CURRENT_USER_ID = 1; 
+
+        // Fetch profiles from our Discover Endpoint
+        async function loadDiscoverFeed() {
+            try {
+                const response = await fetch(`${API_URL}/users/discover?userId=${CURRENT_USER_ID}`);
+                const profiles = await response.json();
+                
+                const feedContainer = document.getElementById('feed');
+                feedContainer.innerHTML = ''; // Clear loading state
+
+                if(profiles.length === 0) {
+                    feedContainer.innerHTML = '<p>No new profiles found nearby!</p>';
+                    return;
+                }
+
+                profiles.forEach(user => {
+                    // Use a fallback avatar image if the user doesn't have a profile picture url yet
+                    const pic = user.profile_pic_url || 'https://via.placeholder.com/280x250?text=No+Photo';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'profile-card';
+                    card.innerHTML = `
+                        <img class="profile-pic" src="${pic}" alt="${user.name}">
+                        <div class="info">
+                            <p class="name">${user.name}</p>
+                            <p class="bio">${user.bio || 'No bio written yet.'}</p>
+                            <button class="like-btn" onclick="likeUser(${user.id})">❤️ Like</button>
+                        </div>
+                    `;
+                    feedContainer.appendChild(card);
+                });
+            } catch (error) {
+                console.error("Error loading feed:", error);
+                document.getElementById('feed').innerHTML = '<p>Error loading profiles. Make sure your Render server is awake!</p>';
+            }
+        }
+
+        // Action when clicking the Like button
+        async function likeUser(likedId) {
+            try {
+                const response = await fetch(`${API_URL}/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        likerId: CURRENT_USER_ID,
+                        likedId: likedId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.match) {
+                    alert("🎉 IT'S A MUTUAL MATCH! Go say hi!");
+                } else {
+                    alert("❤️ Like sent successfully!");
+                }
+            } catch (error) {
+                console.error("Error liking user:", error);
+            }
+        }
+
+        // Initialize the app view
+        loadDiscoverFeed();
+    </script>
+</body>
+</html>

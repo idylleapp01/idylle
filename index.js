@@ -1,9 +1,11 @@
 const express = require('express');
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
+const cors = require('cors'); // 1. Import CORS
 require('dotenv').config();
 
 const app = express();
+app.use(cors()); // 2. Enable CORS for all routes
 app.use(express.json());
 
 const pool = new Pool({
@@ -71,39 +73,18 @@ app.post('/api/like', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
 });
 
-// PROFILE UPDATE ROUTE: Let users add/change bios and profile pictures
+// PROFILE UPDATE ROUTE
 app.put('/api/profile/update', async (req, res) => {
   const { userId, bio, profilePicUrl, gender } = req.body;
-
-  if (!userId) {
-    return res.status(400).json({ error: "userId is required to update a profile." });
-  }
-
+  if (!userId) return res.status(400).json({ error: "userId is required." });
   try {
-    // Dynamically update fields in the database for this user id
     const updatedUser = await pool.query(
-      `UPDATE users 
-       SET bio = COALESCE($1, bio), 
-           profile_pic_url = COALESCE($2, profile_pic_url),
-           gender = COALESCE($3, gender)
-       WHERE id = $4
-       RETURNING id, name, bio, profile_pic_url, gender`,
+      `UPDATE users SET bio = COALESCE($1, bio), profile_pic_url = COALESCE($2, profile_pic_url), gender = COALESCE($3, gender) WHERE id = $4 RETURNING id, name, bio, profile_pic_url, gender`,
       [bio, profilePicUrl, gender, userId]
     );
-
-    if (updatedUser.rows.length === 0) {
-      return res.status(404).json({ error: "User not found." });
-    }
-
-    res.status(200).json({
-      message: "Profile updated successfully!",
-      user: updatedUser.rows[0]
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error updating profile." });
-  }
+    if (updatedUser.rows.length === 0) return res.status(404).json({ error: "User not found." });
+    res.status(200).json({ message: "Profile updated successfully!", user: updatedUser.rows[0] });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Server error." }); }
 });
 
 const PORT = process.env.PORT || 3000;
