@@ -56,13 +56,11 @@ app.post('/api/signup', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
-  // 1. Basic validation
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required." });
   }
 
   try {
-    // 2. Look up the user by email
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     
     if (result.rows.length === 0) {
@@ -71,13 +69,11 @@ app.post('/api/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // 3. Compare the incoming password with the database hash
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(400).json({ error: "Invalid email or password." });
     }
 
-    // 4. Login successful! (Send back user info excluding password)
     res.status(200).json({
       message: "Login successful!",
       user: {
@@ -93,6 +89,32 @@ app.post('/api/login', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error during login." });
+  }
+});
+
+// DISCOVER ROUTE: Fetches potential profiles, hiding the current user
+app.get('/api/users/discover', async (req, res) => {
+  const currentUserId = req.query.userId; // Pass the logged-in user's ID as a query parameter
+
+  try {
+    let queryText = 'SELECT id, name, birthday, gender, bio, profile_pic_url FROM users';
+    let queryParams = [];
+
+    // If a userId is provided, filter them out so they don't see themselves
+    if (currentUserId) {
+      queryText += ' WHERE id != $1';
+      queryParams.push(currentUserId);
+    }
+
+    // Limit results to 20 profiles at a time for efficiency
+    queryText += ' LIMIT 20';
+
+    const result = await pool.query(queryText, queryParams);
+    res.status(200).json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error fetching discovery feed." });
   }
 });
 
