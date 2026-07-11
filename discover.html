@@ -61,6 +61,11 @@
         .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
         .checkbox-row input { width: auto; }
 
+        /* Upload UI Design elements */
+        .upload-trigger-btn { background: #1f1f1f; border: 1px dashed #444; color: #aaa; padding: 12px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; text-align: center; font-weight: 600; width: 100%; margin-top: 4px; }
+        .upload-trigger-btn:hover { background: #262626; border-color: #b51a3a; color: white; }
+        .file-status-label { font-size: 0.8rem; color: #888; display: block; margin-top: 4px; }
+
         .status-msg { text-align: center; color: #666; font-size: 1.1rem; }
         .hidden { display: none !important; }
     </style>
@@ -140,8 +145,11 @@
                 </div>
 
                 <div class="field-group">
-                    <label>Profile Picture Image URL</label>
-                    <input type="url" id="myDetailsPic" placeholder="https://images.unsplash.com/...">
+                    <label>Profile Image Upload</label>
+                    <input type="file" id="myImageFileInput" class="hidden" accept="image/jpeg, image/png, image/webp" onchange="handleFileSelection(this)">
+                    <button type="button" class="upload-trigger-btn" onclick="document.getElementById('myImageFileInput').click()">📸 Choose Local File</button>
+                    <span class="file-status-label" id="fileUploadStatus">No file chosen (Limits: JPEG/PNG/WebP, max 5MB)</span>
+                    <input type="hidden" id="myDetailsPic">
                 </div>
 
                 <div class="field-group">
@@ -190,7 +198,6 @@
             }
             currentUser = JSON.parse(sessionData);
             
-            // Populate our active editing forms from memory states
             populateProfileFormValues();
             fetchDiscoverFeed();
         };
@@ -205,6 +212,39 @@
             document.getElementById('myDetailsInterest').value = currentUser.interests || '';
             document.getElementById('myDetailsPreference').value = currentUser.looking_for || 'Everyone';
             document.getElementById('myDetailsVisibility').checked = currentUser.is_visible !== false;
+
+            if (currentUser.profile_pic_url) {
+                document.getElementById('fileUploadStatus').innerText = "Using current profile picture";
+            }
+        }
+
+        // Frontend Verification Routine for Size and Format Control
+        function handleFileSelection(inputElement) {
+            const file = inputElement.files[0];
+            if (!file) return;
+
+            const ALLOWED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
+            const MAX_FILE_SIZE_MB = 5;
+
+            // 1. Format Check
+            if (!ALLOWED_FORMATS.includes(file.type)) {
+                alert("Unsupported format. Please choose a JPEG, PNG, or WebP image.");
+                inputElement.value = '';
+                return;
+            }
+
+            // 2. Size Check
+            const fileSizeInMB = file.size / (1024 * 1024);
+            if (fileSizeInMB > MAX_FILE_SIZE_MB) {
+                alert(`File is too large (${fileSizeInMB.toFixed(2)}MB). Max size is ${MAX_FILE_SIZE_MB}MB.`);
+                inputElement.value = '';
+                return;
+            }
+
+            // Convert to a local Object URL for instant previewing
+            const previewUrl = URL.createObjectURL(file);
+            document.getElementById('myDetailsPic').value = previewUrl;
+            document.getElementById('fileUploadStatus').innerText = `Selected: ${file.name} (${fileSizeInMB.toFixed(2)}MB)`;
         }
 
         async function fetchDiscoverFeed() {
@@ -236,7 +276,6 @@
             document.getElementById('profileCardMeta').innerText = `${active.gender || 'User'} • ${active.location || 'Nearby'}`;
             document.getElementById('profileCardBio').innerText = active.bio || "No biography provided yet.";
 
-            // Handle Photo rendering structures
             const cardImg = document.getElementById('profileCardImg');
             const cardIcon = document.getElementById('profileCardIcon');
             if(active.profile_pic_url && active.profile_pic_url.trim() !== "") {
@@ -248,7 +287,6 @@
                 cardIcon.classList.remove('hidden');
             }
 
-            // Inject Lifestyle and Goal Badges Dynamic Fields
             const tagsBox = document.getElementById('profileCardTags');
             tagsBox.innerHTML = '';
             
@@ -282,12 +320,10 @@
             }
         }
 
-        /* Modal Dialog View Controls */
         function openProfileModal() { document.getElementById('profileModal').classList.remove('hidden'); }
         function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
 
         function saveProfileChanges() {
-            // Update active state configuration changes inside memory tracking pipelines
             currentUser.name = document.getElementById('myDetailsName').value;
             currentUser.location = document.getElementById('myDetailsLocation').value;
             currentUser.gender = document.getElementById('myDetailsGender').value;
@@ -301,7 +337,7 @@
             localStorage.setItem('user', JSON.stringify(currentUser));
             closeProfileModal();
             alert("Your profile configuration fields have been saved locally!");
-            fetchDiscoverFeed(); // Refresh the current view metrics context automatically
+            fetchDiscoverFeed(); 
         }
 
         function handleLogout() {
