@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDYLLE - Messages & Connections</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: #121212; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background-color: #171717; border-bottom: 1px solid #222; }
+        .logo { font-size: 1.8rem; color: #b51a3a; font-weight: 800; letter-spacing: 2px; text-decoration: none; }
+        .nav-btn { background: #222; border: 1px solid #333; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 0.9rem; }
+
+        .inbox-layout { flex: 1; display: grid; grid-template-columns: 320px 1fr; overflow: hidden; }
+
+        /* Left Rail: Match Deck Queue */
+        .sidebar { background-color: #171717; border-right: 1px solid #222; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; }
+        .sidebar-section { margin-bottom: 24px; }
+        .sidebar-section h4 { font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        
+        .carousel-track { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; }
+        .carousel-item { text-align: center; cursor: pointer; flex-shrink: 0; width: 65px; }
+        .carousel-avatar { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #b51a3a; background: #2a2a2a; }
+        .carousel-name { font-size: 0.75rem; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ccc; }
+
+        /* Active Chats List */
+        .thread-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; cursor: pointer; margin-bottom: 8px; transition: background 0.2s; }
+        .thread-item:hover, .thread-item.active { background: #222; }
+        .thread-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #333; }
+        .thread-info { flex: 1; overflow: hidden; }
+        .thread-name { font-size: 0.95rem; font-weight: 600; }
+
+        /* Main Chat Space */
+        .chat-pane { display: flex; flex-direction: column; background-color: #141414; position: relative; }
+        .chat-empty { display: flex; justify-content: center; align-items: center; height: 100%; color: #666; font-size: 1.1rem; }
+        
+        .chat-header { padding: 20px; background: #171717; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 12px; }
+        .chat-header h3 { font-size: 1.1rem; }
+
+        .message-log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .msg-bubble { max-width: 60%; padding: 10px 14px; border-radius: 14px; font-size: 0.95rem; line-height: 1.4; word-break: break-word; }
+        .msg-bubble.sent { background-color: #b51a3a; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-bubble.received { background-color: #222; color: #eee; align-self: flex-start; border-bottom-left-radius: 2px; }
+
+        /* Icebreaker Suggestions Banner */
+        .icebreaker-bar { padding: 12px 20px; background: #1a1a1a; border-top: 1px solid #222; display: flex; flex-direction: column; gap: 8px; }
+        .icebreaker-title { font-size: 0.75rem; color: #b51a3a; font-weight: 700; text-transform: uppercase; }
+        .icebreaker-chips { display: flex; gap: 10px; overflow-x: auto; }
+        .chip { background: #262626; border: 1px solid #363636; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; color: #ccc; transition: 0.2s; }
+        .chip:hover { border-color: #b51a3a; color: #fff; }
+
+        .input-bar { padding: 20px; background: #171717; border-top: 1px solid #222; display: flex; gap: 12px; }
+        .input-bar input { flex: 1; background: #222; border: 1px solid #333; color: white; padding: 12px; border-radius: 6px; font-size: 0.95rem; }
+        .input-bar button { background: #b51a3a; color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="discover.html" class="logo">IDYLLE</a>
+        <a href="discover.html" class="nav-btn">← Back to Feed</a>
+    </header>
+
+    <div class="inbox-layout">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <h4>Recent Matches</h4>
+                <div class="carousel-track" id="matchesCarousel"></div>
+            </div>
+            <div class="sidebar-section">
+                <h4>Conversations</h4>
+                <div id="threadsContainer"></div>
+            </div>
+        </div>
+
+        <div class="chat-pane" id="chatPane">
+            <div class="chat-empty" id="chatEmptyState">
+                Select a match from the queue sidebar to begin messaging.
+            </div>
+            
+            <div id="chatContentArea" class="hidden" style="display:flex; flex-direction:column; height:100%;">
+                <div class="chat-header">
+                    <img src="" id="activeChatAvatar" class="thread-avatar" alt="">
+                    <h3 id="activeChatName">Connecting...</h3>
+                </div>
+
+                <div class="message-log" id="messageLog"></div>
+
+                <div class="icebreaker-bar">
+                    <span class="icebreaker-title">💡 Stuck? Try an Icebreaker Starter:</span>
+                    <div class="icebreaker-chips" id="icebreakerBox"></div>
+                </div>
+
+                <div class="input-bar">
+                    <input type="text" id="msgInputField" placeholder="Type a secure message...">
+                    <button onclick="dispatchMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = "https://idylle-backend.onrender.com";
+        let currentUser = null;
+        let activeRecipientId = null;
+        let updateInterval = null;
+
+        window.onload = function() {
+            const session = localStorage.getItem('user');
+            if (!session) { window.location.href = 'index.html'; return; }
+            currentUser = JSON.parse(session);
+
+            loadInboxData();
+            loadIcebreakers();
+        };
+
+        async function loadInboxData() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/matches?userId=${currentUser.id}`);
+                const matches = await res.json();
+                
+                const carousel = document.getElementById('matchesCarousel');
+                const threads = document.getElementById('threadsContainer');
+                carousel.innerHTML = '';
+                threads.innerHTML = '';
+
+                if (matches.length === 0) {
+                    carousel.innerHTML = '<span style="font-size:0.85rem; color:#444;">No new connections yet.</span>';
+                    threads.innerHTML = '<span style="font-size:0.85rem; color:#444;">Swiping matches unlocks chat fields.</span>';
+                    return;
+                }
+
+                matches.forEach(m => {
+                    // Inject into Top Carousel View
+                    carousel.innerHTML += `
+                        <div class="carousel-item" onclick="openChatWindow(${m.user_id}, '${m.name}', '${m.profile_pic_url || ''}')">
+                            <img src="${m.profile_pic_url || '👤'}" class="carousel-avatar" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23555\'><circle cx=\'12\' cy=\'8\' r=\'4\'/><path d=\'M12 14c-6.1 0-8 4-8 4h16s-1.9-4-8-4z\'/></svg>'}" alt="">
+                            <div class="carousel-name">${m.name}</div>
+                        </div>`;
+
+                    // Inject into Left Conversation Navigation List
+                    threads.innerHTML += `
+                        <div class="thread-item" id="thread-${m.user_id}" onclick="openChatWindow(${m.user_id}, '${m.name}', '${m.profile_pic_url || ''}')">
+                            <img src="${m.profile_pic_url || ''}" class="thread-avatar" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23555\'><circle cx=\'12\' cy=\'8\' r=\'4\'/><path d=\'M12 14c-6.1 0-8 4-8 4h16s-1.9-4-8-4z\'/></svg>'}" alt="">
+                            <div class="thread-info">
+                                <div class="thread-name">${m.name}</div>
+                            </div>
+                        </div>`;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadIcebreakers() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/icebreakers`);
+                const prompts = await res.json();
+                const box = document.getElementById('icebreakerBox');
+                box.innerHTML = '';
+                prompts.forEach(p => {
+                    box.innerHTML += `<div class="chip" onclick="applyIcebreaker('${p.prompt_text.replace(/'/g, "\\'")}')">${p.prompt_text}</div>`;
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        function applyIcebreaker(text) {
+            document.getElementById('msgInputField').value = text;
+        }
+
+        function openChatWindow(recipientId, name, avatarUrl) {
+            activeRecipientId = recipientId;
+            document.getElementById('chatEmptyState').style.display = 'none';
+            document.getElementById('chatContentArea').style.display = 'flex';
+            
+            document.getElementById('activeChatName').innerText = name;
+            document.getElementById('activeChatAvatar').src = avatarUrl || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23555\'><circle cx=\'12\' cy=\'8\' r=\'4\'/><path d=\'M12 14c-6.1 0-8 4-8 4h16s-1.9-4-8-4z\'/></svg>';
+
+            document.querySelectorAll('.thread-item').forEach(el => el.classList.remove('active'));
+            const targetThread = document.getElementById(`thread-${recipientId}`);
+            if (targetThread) targetThread.classList.add('active');
+
+            syncMessages();
+            clearInterval(updateInterval);
+            updateInterval = setInterval(syncMessages, 3000); // 3-second polling interval
+        }
+
+        async function syncMessages() {
+            if (!activeRecipientId) return;
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/messages?senderId=${currentUser.id}&receiverId=${activeRecipientId}`);
+                const history = await res.json();
+                const log = document.getElementById('messageLog');
+                
+                const currentScroll = log.scrollTop + log.clientHeight >= log.scrollHeight - 50;
+
+                log.innerHTML = '';
+                history.forEach(m => {
+                    const typeClass = m.sender_id === currentUser.id ? 'sent' : 'received';
+                    log.innerHTML += `<div class="msg-bubble ${typeClass}">${m.message_text}</div>`;
+                });
+
+                if (currentScroll) log.scrollTop = log.scrollHeight;
+            } catch (err) { console.error(err); }
+        }
+
+        async function dispatchMessage() {
+            const input = document.getElementById('msgInputField');
+            const text = input.value.trim();
+            if (!text || !activeRecipientId) return;
+
+            input.value = '';
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        senderId: currentUser.id,
+                        receiverId: activeRecipientId,
+                        messageText: text
+                    })
+                });
+                if (res.ok) syncMessages();
+            } catch (err) { console.error(err); }
+        }
+    </script>
+</body>
+</html>

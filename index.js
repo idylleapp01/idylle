@@ -12,16 +12,19 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "716592672743-3866rn9h0
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Increased limit to handle base64 cropped previews safely
+app.use(express.json({ limit: '10mb' })); 
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: { 
+        rejectUnauthorized: false,
+        sslmode: 'verify-full'
+    }
 });
 
 async function initDB() {
     try {
-        // Users base structure
+        // Users base table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -32,7 +35,7 @@ async function initDB() {
             );
         `);
 
-        // Apply migrations dynamically
+        // Migration schema structures
         const alterQueries = [
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);`,
             `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;`, 
@@ -54,7 +57,7 @@ async function initDB() {
             await pool.query(query);
         }
 
-        // Likes table
+        // Likes tracking table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS likes (
                 id SERIAL PRIMARY KEY,
@@ -65,7 +68,18 @@ async function initDB() {
             );
         `);
 
-        // Messages table
+        // Mutual matches table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS matches (
+                id SERIAL PRIMARY KEY,
+                user_one INT REFERENCES users(id) ON DELETE CASCADE,
+                user_two INT REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_one, user_two)
+            );
+        `);
+
+        // Chat messages table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS messages (
                 id SERIAL PRIMARY KEY,
@@ -75,6 +89,25 @@ async function initDB() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
+
+        // Icebreakers dynamic table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS icebreakers (
+                id SERIAL PRIMARY KEY,
+                prompt_text TEXT NOT NULL
+            );
+        `);
+
+        // Pre-populate icebreakers if empty
+        const countCheck = await pool.query('SELECT COUNT(*) FROM icebreakers');
+        if (parseInt(countCheck.rows[0].count) === 0) {
+            await pool.query(`
+                INSERT INTO icebreakers (prompt_text) VALUES 
+                ('What is your absolute favorite weekend getaway spot?'),
+                ('If you could only eat one meal for the rest of your life, what would it be?'),
+                ('What is the most adventurous thing you have ever done?');
+            `);
+        }
 
         console.log("Database initialized and structural fields updated successfully.");
     } catch (err) {
@@ -158,11 +191,76 @@ app.post('/api/like', async (req, res) => {
     const { likerId, likedId } = req.body;
     try {
         await pool.query(`INSERT INTO likes (liker_id, liked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [likerId, likedId]);
-        const match = await pool.query(`SELECT * FROM likes WHERE liker_id = $1 AND liked_id = $2`, [likedId, likerId]);
-        res.status(200).json({ success: true, match: match.rows.length > 0 });
+        
+        // Check for mutual connection
+        const matchCheck = await pool.query(`SELECT * FROM likes WHERE liker_id = $1 AND liked_id = $2`, [likedId, likerId]);
+        let isMatch = matchCheck.rows.length > 0;
+
+        if (isMatch) {
+            const u1 = Math.min(likerId, likedId);
+            const u2 = Math.max(likerId, likedId);
+            await pool.query(`INSERT INTO matches (user_one, user_two) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [u1, u2]);
+        }
+
+        res.status(200).json({ success: true, match: isMatch });
     } catch (err) {
         res.status(500).json({ error: "Swipe action logging failed." });
     }
 });
 
-app.listen(PORT, () => console.log(`Execution ongoing on port ${PORT}`));
+/* INBOX & CHAT SYSTEM OPERATIONS */
+
+app.get('/api/matches', async (req, res) => {
+    const { userId } = req.query;
+    try {
+        const matches = await pool.query(`
+            SELECT m.id AS match_id, u.id AS user_id, u.name, u.profile_pic_url 
+            FROM matches m
+            JOIN users u ON (u.id = m.user_one OR u.id = m.user_two)
+            WHERE (m.user_one = $1 OR m.user_two = $1) AND u.id != $1
+            ORDER BY m.created_at DESC
+        `, [userId]);
+        res.status(200).json(matches.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to grab match list records." });
+    }
+});
+
+app.get('/api/icebreakers', async (req, res) => {
+    try {
+        const prompts = await pool.query(`SELECT * FROM icebreakers ORDER BY RANDOM() LIMIT 3`);
+        res.status(200).json(prompts.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to pull interactive prompts." });
+    }
+});
+
+app.get('/api/messages', async (req, res) => {
+    const { senderId, receiverId } = req.query;
+    try {
+        const chatHistory = await pool.query(`
+            SELECT id, sender_id, receiver_id, message_text, created_at 
+            FROM messages 
+            WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)
+            ORDER BY created_at ASC
+        `, [senderId, receiverId]);
+        res.status(200).json(chatHistory.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to sync connection messages." });
+    }
+});
+
+app.post('/api/messages', async (req, res) => {
+    const { senderId, receiverId, messageText } = req.body;
+    try {
+        const newMessage = await pool.query(`
+            INSERT INTO messages (sender_id, receiver_id, message_text) 
+            VALUES ($1, $2, $3) RETURNING *
+        `, [senderId, receiverId, messageText]);
+        res.status(201).json(newMessage.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to submit new text record." });
+    }
+});
+
+app.listen(PORT, () => console.log(`Server executing successfully on port ${PORT}`));
