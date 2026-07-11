@@ -9,57 +9,38 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { display: flex; height: 100vh; background-color: #121212; color: white; overflow: hidden; }
         
-        /* Modern Split Screen Layout */
-        .hero-side { 
-            flex: 1.2; 
-            background: linear-gradient(135deg, #1f1f1f, #0d0d0d); 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            padding: 40px; 
-            text-align: center; 
-        }
-        .form-side { 
-            flex: 0.8; 
-            background-color: #171717; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            padding: 60px; 
-            border-left: 1px solid #222; 
-        }
+        .hero-side { flex: 1.2; background: linear-gradient(135deg, #1f1f1f, #0d0d0d); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center; }
+        .form-side { flex: 0.8; background-color: #171717; display: flex; flex-direction: column; justify-content: center; padding: 60px; border-left: 1px solid #222; overflow-y: auto; }
 
-        /* Branding Components */
         h1 { font-size: 4rem; color: #b51a3a; font-weight: 800; letter-spacing: 4px; margin-bottom: 10px; }
         .tagline { font-size: 1.2rem; color: #888; max-width: 400px; line-height: 1.6; }
         h2 { font-size: 2rem; margin-bottom: 8px; color: #fff; font-weight: 700; }
         .subtitle { font-size: 0.95rem; color: #888; margin-bottom: 24px; }
 
-        /* Unified Form Styles */
         .input-group { margin-bottom: 18px; }
         label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 6px; font-weight: 500; }
-        input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #2a2a2a; background-color: #1f1f1f; color: white; font-size: 0.95rem; transition: border-color 0.2s; }
-        input:focus { outline: none; border-color: #b51a3a; }
+        input, select, textarea { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #2a2a2a; background-color: #1f1f1f; color: white; font-size: 0.95rem; transition: border-color 0.2s; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #b51a3a; }
         
+        .checkbox-group { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 15px; font-size: 0.85rem; color: #aaa; }
+        .checkbox-group input { width: auto; margin-top: 3px; }
+
         .submit-btn { width: 100%; padding: 14px; background-color: #b51a3a; border: none; color: white; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 5px; transition: background 0.2s; }
         .submit-btn:hover { background-color: #94132e; }
 
-        /* Elegant Divider */
         .divider { display: flex; align-items: center; text-align: center; color: #555; font-size: 0.85rem; margin: 20px 0; }
         .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #2a2a2a; }
         .divider:not(:empty)::before { margin-right: .5em; }
         .divider:not(:empty)::after { margin-left: .5em; }
 
-        /* Unified Social Buttons placed inside the Form Controller */
         .social-container { display: flex; flex-direction: column; gap: 12px; }
-        .action-btn { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2a2a2a; background: #1f1f1f; color: white; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.2s, border-color 0.2s; }
-        .action-btn:hover { background: #262626; border-color: #3a3a3a; }
+        .action-btn { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2a2a2a; background: #1f1f1f; color: white; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
         
-        .toggle-link { margin-top: 24px; font-size: 0.9rem; color: #aaa; text-align: center; cursor: pointer; }
-        .toggle-link span { color: #b51a3a; text-decoration: none; font-weight: 600; }
-        .toggle-link span:hover { text-decoration: underline; }
+        .toggle-link { margin-top: 18px; font-size: 0.9rem; color: #aaa; text-align: center; cursor: pointer; }
+        .toggle-link span { color: #b51a3a; font-weight: 600; }
         .hidden { display: none !important; }
+
+        .captcha-box { background: #222; padding: 10px; border-radius: 6px; text-align: center; font-weight: bold; letter-spacing: 3px; color: #b51a3a; margin-bottom: 10px; user-select: none; }
     </style>
 </head>
 <body>
@@ -77,71 +58,155 @@
             <form onsubmit="handleFormLogin(event)">
                 <div class="input-group">
                     <label>Email or Username</label>
-                    <input type="text" id="loginIdentifier" required placeholder="Enter username or email address">
+                    <input type="text" id="loginIdentifier" required>
                 </div>
                 <div class="input-group">
                     <label>Password</label>
-                    <input type="password" id="loginPassword" required placeholder="••••••••">
+                    <input type="password" id="loginPassword" required>
                 </div>
                 <button type="submit" class="submit-btn">Sign In</button>
             </form>
-
+            <p class="toggle-link" style="margin-top: 10px;" onclick="setView('recovery')">Forgot Password?</p>
             <div class="divider">or</div>
-
             <div class="social-container">
                 <button class="action-btn" id="googleSignInBtn">✨ Continue with Google</button>
-                <button class="action-btn" onclick="alert('Mobile login feature coming soon!')">📞 Continue with mobile</button>
             </div>
-            
-            <p class="toggle-link" onclick="toggleFormView(true)">Don't have an account? <span>Sign Up</span></p>
+            <p class="toggle-link" onclick="setView('signup')">Don't have an account? <span>Sign Up</span></p>
         </div>
 
         <div id="signupSection" class="hidden">
             <h2>Create Account</h2>
-            <p class="subtitle">Join IDYLLE and start building trusted connections.</p>
+            <p class="subtitle">Join IDYLLE and verify your credentials.</p>
             <form onsubmit="handleFormSignup(event)">
-                <div class="input-group"><label>Full Name</label><input type="text" id="signName" required placeholder="John Doe"></div>
-                <div class="input-group"><label>Username</label><input type="text" id="signUser" required placeholder="johndoe"></div>
-                <div class="input-group"><label>Email Address</label><input type="email" id="signEmail" required placeholder="you@example.com"></div>
-                <div class="input-group"><label>Password</label><input type="password" id="signPass" required placeholder="••••••••"></div>
-                <div class="input-group"><label>Security Question: What is your hometown?</label><input type="text" id="signSecret" required placeholder="Answer verification query"></div>
-                <button type="submit" class="submit-btn">Register</button>
+                <div class="input-group"><label>Full Name</label><input type="text" id="signName" required></div>
+                <div class="input-group"><label>Username</label><input type="text" id="signUser" required></div>
+                <div class="input-group"><label>Email Address</label><input type="email" id="signEmail" required></div>
+                <div class="input-group"><label>Password</label><input type="password" id="signPass" required></div>
+                
+                <div class="input-group">
+                    <label>Date of Birth</label>
+                    <input type="date" id="signDOB" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Anti-Spam Verification</label>
+                    <div class="captcha-box" id="captchaText">ABCD12</div>
+                    <input type="text" id="signCaptcha" placeholder="Enter code above" required>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="termsCheck" required>
+                    <label for="termsCheck">I agree to the Terms of Service and Privacy Policy.</label>
+                </div>
+
+                <button type="submit" class="submit-btn">Register Account</button>
             </form>
-            <p class="toggle-link" onclick="toggleFormView(false)">Already have an account? <span>Login</span></p>
+            <p class="toggle-link" onclick="setView('login')">Already have an account? <span>Login</span></p>
+        </div>
+
+        <div id="recoverySection" class="hidden">
+            <h2>Recover Password</h2>
+            <p class="subtitle">Enter your email address to receive a verification reset link.</p>
+            <form onsubmit="handlePasswordRecovery(event)">
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" id="recoverEmail" required>
+                </div>
+                <button type="submit" class="submit-btn">Send Recovery Email</button>
+            </form>
+            <p class="toggle-link" onclick="setView('login')">Back to <span>Login</span></p>
         </div>
     </div>
 
     <script>
         const BACKEND_URL = "https://idylle-backend.onrender.com";
         const CLIENT_ID = "716592672743-3866rn9h0p3le4kb6klehhjm9gf9pmh8.apps.googleusercontent.com"; 
+        let dynamicCaptchaCode = "";
 
-        // Safe Single Initialization Loop Lifecycle Hook
         window.onload = function () {
+            generateCaptcha();
             if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-                google.accounts.id.initialize({
-                    client_id: CLIENT_ID,
-                    callback: handleGoogleCredentialResponse
-                });
-
-                const googleBtn = document.getElementById('googleSignInBtn');
-                if (googleBtn) {
-                    googleBtn.addEventListener('click', function() {
-                        google.accounts.id.prompt();
-                    });
-                }
+                google.accounts.id.initialize({ client_id: CLIENT_ID, callback: handleGoogleCredentialResponse });
+                document.getElementById('googleSignInBtn').addEventListener('click', () => google.accounts.id.prompt());
             }
         };
 
-        function toggleFormView(showSignup) {
-            document.getElementById('loginSection').classList.toggle('hidden', showSignup);
-            document.getElementById('signupSection').classList.toggle('hidden', !showSignup);
+        function generateCaptcha() {
+            dynamicCaptchaCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const box = document.getElementById('captchaText');
+            if(box) box.innerText = dynamicCaptchaCode;
         }
 
+        function setView(viewName) {
+            document.getElementById('loginSection').classList.toggle('hidden', viewName !== 'login');
+            document.getElementById('signupSection').classList.toggle('hidden', viewName !== 'signup');
+            document.getElementById('recoverySection').classList.toggle('hidden', viewName !== 'recovery');
+        }
+
+        function calculateAge(dobString) {
+            const today = new Date();
+            const birthDate = new Date(dobString);
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+            return age;
+        }
+
+        async function handleFormSignup(e) {
+            e.preventDefault();
+            
+            // Age Verification
+            const dob = document.getElementById('signDOB').value;
+            if (calculateAge(dob) < 18) {
+                return alert("You must be 18 years or older to register.");
+            }
+
+            // Anti-Spam Verification
+            const captchaInput = document.getElementById('signCaptcha').value.trim().toUpperCase();
+            if (captchaInput !== dynamicCaptchaCode) {
+                alert("Incorrect anti-spam code. Please try again.");
+                generateCaptcha();
+                return;
+            }
+
+            const name = document.getElementById('signName').value;
+            const username = document.getElementById('signUser').value;
+            const email = document.getElementById('signEmail').value;
+            const password = document.getElementById('signPass').value;
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, username, email, password })
+                });
+                const data = await res.json();
+                if (!res.ok) return alert(data.error);
+                
+                alert("Registration successful! A confirmation email link has been sent to your inbox.");
+                setView('login');
+            } catch (err) { alert("Registration backend sequence connection failure."); }
+        }
+
+        async function handlePasswordRecovery(e) {
+            e.preventDefault();
+            const email = document.getElementById('recoverEmail').value;
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/recover-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+                alert("If the email exists in our records, a secure reset token link has been sent.");
+                setView('login');
+            } catch (err) { alert("Error connecting to recovery pipeline."); }
+        }
+
+        // Standard Login and Google Authentication remain consistent...
         async function handleFormLogin(e) {
             e.preventDefault();
             const identifier = document.getElementById('loginIdentifier').value;
             const password = document.getElementById('loginPassword').value;
-
             try {
                 const res = await fetch(`${BACKEND_URL}/api/login`, {
                     method: 'POST',
@@ -150,36 +215,11 @@
                 });
                 const data = await res.json();
                 if (!res.ok) return alert(data.error);
+                if (!data.user.is_verified) return alert("Please confirm your email address before signing in.");
                 
                 localStorage.setItem('user', JSON.stringify(data.user));
                 window.location.href = 'discover.html';
-            } catch (err) { 
-                alert("Could not reach backend identity server pipeline."); 
-            }
-        }
-
-        async function handleFormSignup(e) {
-            e.preventDefault();
-            const name = document.getElementById('signName').value;
-            const username = document.getElementById('signUser').value;
-            const email = document.getElementById('signEmail').value;
-            const password = document.getElementById('signPass').value;
-            const secretAnswer = document.getElementById('signSecret').value;
-
-            try {
-                const res = await fetch(`${BACKEND_URL}/api/signup`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, username, email, password, secretAnswer })
-                });
-                const data = await res.json();
-                if (!res.ok) return alert(data.error);
-                
-                alert("Account created successfully! Please log in.");
-                toggleFormView(false);
-            } catch (err) { 
-                alert("Registration backend sequence connection failure."); 
-            }
+            } catch (err) { alert("Could not reach backend identity server."); }
         }
 
         async function handleGoogleCredentialResponse(response) {
@@ -190,13 +230,10 @@
                     body: JSON.stringify({ token: response.credential })
                 });
                 const data = await res.json();
-                if (!res.ok) return alert(data.error || "Google authentication failed.");
-
+                if (!res.ok) return alert(data.error);
                 localStorage.setItem('user', JSON.stringify(data.user));
                 window.location.href = 'discover.html';
-            } catch (err) { 
-                alert("Could not complete verification pipeline checks with Google integration backend."); 
-            }
+            } catch (err) { alert("Google connection error."); }
         }
     </script>
 </body>

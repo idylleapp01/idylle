@@ -8,7 +8,7 @@ const { OAuth2Client } = require('google-auth-library');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Solidified Client ID matching the frontend exactly
+// Set up Google OAuth Client
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "716592672743-3866rn9h0p3le4kb6klehhjm9gf9pmh8.apps.googleusercontent.com";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -39,13 +39,17 @@ async function initDB() {
         // 2. Combined Robust Migration Checks
         const alterQueries = [
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);`,
-            // Fixes the NOT NULL constraint conflict for Google Auth accounts
+            // Drop NOT NULL constraint on password_hash to accommodate third-party Google profiles cleanly
             `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;`, 
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50);`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(50);`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic_url TEXT;`,
-            `ALTER TABLE users ADD COLUMN IF NOT EXISTS secret_answer TEXT;`
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS secret_answer TEXT;`,
+            // Anti-spam, verification status, and security recovery tokens
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);`
         ];
 
         for (const query of alterQueries) {
@@ -85,29 +89,58 @@ initDB();
 
 // Signup Route
 app.post('/api/signup', async (req, res) => {
-    const { email, password, name, username, phone_number, gender, bio, secretAnswer } = req.body;
+    const { email, password, name, username } = req.body;
 
-    if (!email || !password || !name || !username || !secretAnswer) {
+    if (!email || !password || !name || !username) {
         return res.status(400).json({ error: "All required registration fields are missing." });
     }
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
+        // Generate a simple secure hash string to simulate confirmation mail delivery
+        const verificationToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         
         const result = await pool.query(
-            `INSERT INTO users (email, password_hash, name, username, phone_number, gender, bio, secret_answer) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+            `INSERT INTO users (email, password_hash, name, username, verification_token, is_verified) 
+             VALUES ($1, $2, $3, $4, $5, false) 
              RETURNING id, name, username, email`,
-            [email.toLowerCase().trim(), hashedPassword, name.trim(), username.toLowerCase().trim(), phone_number, gender, bio, secretAnswer]
+            [email.toLowerCase().trim(), hashedPassword, name.trim(), username.toLowerCase().trim(), verificationToken]
         );
 
-        res.status(201).json({ message: "User registered successfully", user: result.rows[0] });
+        // Simulation Link printed directly in your Render console window for easy validation testing
+        console.log(`\n--- [EMAIL DISPATCH SIMULATOR] ---`);
+        console.log(`Verify Account: ${req.protocol}://${req.get('host')}/api/verify-email?token=${verificationToken}`);
+        console.log(`----------------------------------\n`);
+
+        res.status(201).json({ message: "User registered successfully. Verification required.", user: result.rows[0] });
     } catch (err) {
         if (err.code === '23505') {
             return res.status(400).json({ error: "Email or username already exists in our system." });
         }
         console.error("Signup error details:", err);
         res.status(500).json({ error: "Internal server error during registration." });
+    }
+});
+
+// Email Link Validation Activation Hook
+app.get('/api/verify-email', async (req, res) => {
+    const { token } = req.query;
+    if (!token) return res.status(400).send("Verification token parameter query is missing.");
+
+    try {
+        const result = await pool.query(
+            `UPDATE users SET is_verified = true, verification_token = null WHERE verification_token = $1 RETURNING id`,
+            [token]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).send("<h2>Invalid or expired confirmation link token.</h2>");
+        }
+
+        res.send("<h1>Email successfully confirmed! You can now log into IDYLLE safely.</h1>");
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Internal server error handling confirmation activation sequence.");
     }
 });
 
@@ -130,6 +163,11 @@ app.post('/api/login', async (req, res) => {
         }
 
         const user = userCheck.rows[0];
+
+        if (!user.is_verified) {
+            return res.status(400).json({ error: "Please verify your email address using the confirmation link sent to your inbox before signing in." });
+        }
+
         if (!user.password_hash) {
             return res.status(400).json({ error: "This account uses Google Login. Please sign in with Google." });
         }
@@ -141,11 +179,33 @@ app.post('/api/login', async (req, res) => {
 
         res.status(200).json({
             message: "Login successful",
-            user: { id: user.id, name: user.name, username: user.username, email: user.email }
+            user: { id: user.id, name: user.name, username: user.username, email: user.email, is_verified: user.is_verified }
         });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Internal server error during login." });
+    }
+});
+
+// Password Recovery Action Point
+app.post('/api/recover-password', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email address context is required." });
+
+    try {
+        const resetToken = Math.random().toString(36).substring(2, 15);
+        const result = await pool.query(`UPDATE users SET reset_token = $1 WHERE email = $2 RETURNING id`, [resetToken, email.toLowerCase().trim()]);
+
+        if (result.rows.length > 0) {
+            console.log(`\n--- [PASSWORD RECOVERY SIMULATOR] ---`);
+            console.log(`Reset Path: ${req.protocol}://${req.get('host')}/api/reset-password?token=${resetToken}`);
+            console.log(`-------------------------------------\n`);
+        }
+
+        res.status(200).json({ success: true, message: "If matching account records are found, a reset pipeline link will be generated." });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Internal pipeline error building recovery package tokens." });
     }
 });
 
@@ -171,13 +231,12 @@ app.post('/api/google-login', async (req, res) => {
 
         if (userCheck.rows.length === 0) {
             const randomUsername = `user_${googleId.substring(0, 8)}`;
-            const placeholderAnswer = `Google Auth Account: ${googleId}`;
-            
+            // Google logins bypass standard verification steps automatically since Google handles identification
             const newUser = await pool.query(
-                `INSERT INTO users (email, name, username, secret_answer) 
-                 VALUES ($1, $2, $3, $4) 
-                 RETURNING id, name, username, email`,
-                [email.toLowerCase().trim(), name.trim(), randomUsername, placeholderAnswer]
+                `INSERT INTO users (email, name, username, is_verified) 
+                 VALUES ($1, $2, $3, true) 
+                 RETURNING id, name, username, email, gender`,
+                [email.toLowerCase().trim(), name.trim(), randomUsername]
             );
             user = newUser.rows[0];
         } else {
@@ -186,7 +245,8 @@ app.post('/api/google-login', async (req, res) => {
                 id: existingUser.id,
                 name: existingUser.name,
                 username: existingUser.username,
-                email: existingUser.email
+                email: existingUser.email,
+                gender: existingUser.gender
             };
         }
 
