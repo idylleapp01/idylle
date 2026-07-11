@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IDYLLE - Discover & Profile Settings</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -61,10 +63,13 @@
         .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
         .checkbox-row input { width: auto; }
 
-        /* Upload UI Design elements */
+        /* Interactive Photo Cropper Container */
         .upload-trigger-btn { background: #1f1f1f; border: 1px dashed #444; color: #aaa; padding: 12px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; text-align: center; font-weight: 600; width: 100%; margin-top: 4px; }
         .upload-trigger-btn:hover { background: #262626; border-color: #b51a3a; color: white; }
         .file-status-label { font-size: 0.8rem; color: #888; display: block; margin-top: 4px; }
+        
+        .cropper-stage-wrapper { margin-top: 10px; width: 100%; max-height: 240px; overflow: hidden; background-color: #000; border-radius: 6px; border: 1px solid #333; }
+        .cropper-stage-wrapper img { max-width: 100%; display: block; }
 
         .status-msg { text-align: center; color: #666; font-size: 1.1rem; }
         .hidden { display: none !important; }
@@ -145,11 +150,14 @@
                 </div>
 
                 <div class="field-group">
-                    <label>Profile Image Upload</label>
-                    <input type="file" id="myImageFileInput" class="hidden" accept="image/jpeg, image/png, image/webp" onchange="handleFileSelection(this)">
-                    <button type="button" class="upload-trigger-btn" onclick="document.getElementById('myImageFileInput').click()">📸 Choose Local File</button>
+                    <label>Profile Image Upload & Crop</label>
+                    <input type="file" id="imageLoaderInput" class="hidden" accept="image/jpeg, image/png, image/webp" onchange="initializeImageCropper(this)">
+                    <button type="button" class="upload-trigger-btn" onclick="document.getElementById('imageLoaderInput').click()">📸 Pick File & Crop</button>
                     <span class="file-status-label" id="fileUploadStatus">No file chosen (Limits: JPEG/PNG/WebP, max 5MB)</span>
-                    <input type="hidden" id="myDetailsPic">
+                    
+                    <div class="cropper-stage-wrapper hidden" id="cropperStageBox">
+                        <img id="imageContainerView" src="" alt="Cropping Source Target">
+                    </div>
                 </div>
 
                 <div class="field-group">
@@ -184,11 +192,14 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
         const BACKEND_URL = "https://idylle-backend.onrender.com";
         let currentUser = null;
         let profilesQueue = [];
         let currentProfileIndex = 0;
+        let cropperInstance = null;
+        let croppedImageBase64 = "";
 
         window.onload = function() {
             const sessionData = localStorage.getItem('user');
@@ -207,44 +218,54 @@
             document.getElementById('myDetailsLocation').value = currentUser.location || '';
             document.getElementById('myDetailsGender').value = currentUser.gender || 'Male';
             document.getElementById('myDetailsGoal').value = currentUser.relationship_goal || 'Long-term partnership';
-            document.getElementById('myDetailsPic').value = currentUser.profile_pic_url || '';
             document.getElementById('myDetailsBio').value = currentUser.bio || '';
             document.getElementById('myDetailsInterest').value = currentUser.interests || '';
             document.getElementById('myDetailsPreference').value = currentUser.looking_for || 'Everyone';
             document.getElementById('myDetailsVisibility').checked = currentUser.is_visible !== false;
-
+            
             if (currentUser.profile_pic_url) {
-                document.getElementById('fileUploadStatus').innerText = "Using current profile picture";
+                croppedImageBase64 = currentUser.profile_pic_url;
+                document.getElementById('fileUploadStatus').innerText = "Using current cropped profile image";
             }
         }
 
-        // Frontend Verification Routine for Size and Format Control
-        function handleFileSelection(inputElement) {
-            const file = inputElement.files[0];
+        function initializeImageCropper(fileInput) {
+            const file = fileInput.files[0];
             if (!file) return;
 
             const ALLOWED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
-            const MAX_FILE_SIZE_MB = 5;
+            const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 
-            // 1. Format Check
             if (!ALLOWED_FORMATS.includes(file.type)) {
-                alert("Unsupported format. Please choose a JPEG, PNG, or WebP image.");
-                inputElement.value = '';
+                alert("Unsupported image type. Please choose a JPEG, PNG, or WebP graphic.");
+                fileInput.value = '';
                 return;
             }
 
-            // 2. Size Check
-            const fileSizeInMB = file.size / (1024 * 1024);
-            if (fileSizeInMB > MAX_FILE_SIZE_MB) {
-                alert(`File is too large (${fileSizeInMB.toFixed(2)}MB). Max size is ${MAX_FILE_SIZE_MB}MB.`);
-                inputElement.value = '';
+            if (file.size > MAX_SIZE_BYTES) {
+                alert("The selected image is too large. Max allowed size limit is 5MB.");
+                fileInput.value = '';
                 return;
             }
 
-            // Convert to a local Object URL for instant previewing
-            const previewUrl = URL.createObjectURL(file);
-            document.getElementById('myDetailsPic').value = previewUrl;
-            document.getElementById('fileUploadStatus').innerText = `Selected: ${file.name} (${fileSizeInMB.toFixed(2)}MB)`;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const targetImg = document.getElementById('imageContainerView');
+                targetImg.src = e.target.result;
+                
+                document.getElementById('cropperStageBox').classList.remove('hidden');
+                document.getElementById('fileUploadStatus').innerText = `Editing: ${file.name}`;
+
+                if (cropperInstance) cropperInstance.destroy();
+
+                cropperInstance = new Cropper(targetImg, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    background: false,
+                    autoCropArea: 1
+                });
+            };
+            reader.readAsDataURL(file);
         }
 
         async function fetchDiscoverFeed() {
@@ -321,14 +342,30 @@
         }
 
         function openProfileModal() { document.getElementById('profileModal').classList.remove('hidden'); }
-        function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
+        
+        function closeProfileModal() { 
+            document.getElementById('profileModal').classList.add('hidden'); 
+            document.getElementById('cropperStageBox').classList.add('hidden');
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
+        }
 
         function saveProfileChanges() {
+            if (cropperInstance) {
+                const canvas = cropperInstance.getCroppedCanvas({
+                    width: 400,
+                    height: 400
+                });
+                croppedImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
+            }
+
             currentUser.name = document.getElementById('myDetailsName').value;
             currentUser.location = document.getElementById('myDetailsLocation').value;
             currentUser.gender = document.getElementById('myDetailsGender').value;
             currentUser.relationship_goal = document.getElementById('myDetailsGoal').value;
-            currentUser.profile_pic_url = document.getElementById('myDetailsPic').value;
+            currentUser.profile_pic_url = croppedImageBase64; 
             currentUser.bio = document.getElementById('myDetailsBio').value;
             currentUser.interests = document.getElementById('myDetailsInterest').value;
             currentUser.looking_for = document.getElementById('myDetailsPreference').value;
@@ -336,7 +373,7 @@
 
             localStorage.setItem('user', JSON.stringify(currentUser));
             closeProfileModal();
-            alert("Your profile configuration fields have been saved locally!");
+            alert("Your profile modifications have been successfully saved!");
             fetchDiscoverFeed(); 
         }
 
