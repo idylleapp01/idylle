@@ -152,7 +152,7 @@
                 if (!res.ok) return alert(data.error);
                 
                 localStorage.setItem('user', JSON.stringify(data.user));
-                window.location.href = '/discover';
+                window.location.href = 'discover.html';
             } catch (err) { 
                 alert("Could not reach backend identity server pipeline."); 
             }
@@ -193,7 +193,7 @@
                 if (!res.ok) return alert(data.error || "Google authentication failed.");
 
                 localStorage.setItem('user', JSON.stringify(data.user));
-                window.location.href = '/discover';
+                window.location.href = 'discover.html';
             } catch (err) { 
                 alert("Could not complete verification pipeline checks with Google integration backend."); 
             }
