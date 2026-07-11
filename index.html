@@ -37,7 +37,7 @@
         
         <button class="action-btn" onclick="alert('Mobile login feature coming soon!')">📞 Continue with mobile</button>
         <button class="action-btn" onclick="toggleFormView(false)">✉️ Continue with email</button>
-        <button class="action-btn google-btn" onclick="handleGoogleLoginClick()">✨ Continue with Google</button>
+        <button class="action-btn google-btn" id="googleSignInBtn">✨ Continue with Google</button>
         
         <p class="disclaimer">We will never share anything without your permission</p>
     </div>
@@ -75,25 +75,34 @@
 
     <script>
         const BACKEND_URL = "https://idylle-backend.onrender.com";
-        const CLIENT_ID = "716592672743-3866rn9h0p3le4kb6klehhjm9gf9pmh8.apps.googleusercontent.com"; // Fixed trailing character typo
+        const CLIENT_ID = "716592672743-3866rn9h0p3le4kb6klehhjm9gf9pmh8.apps.googleusercontent.com"; 
 
-        // 1. Initialize Google Auth Framework once the document loads safely
+        // Initialize Google Auth Framework and bind event listeners safely on window load
         window.onload = function () {
             if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                // 1. Initialize Google Sign In Configuration
                 google.accounts.id.initialize({
                     client_id: CLIENT_ID,
                     callback: handleGoogleCredentialResponse
                 });
+
+                // 2. Bind the click event to our button safely after script evaluation
+                const googleBtn = document.getElementById('googleSignInBtn');
+                if (googleBtn) {
+                    googleBtn.addEventListener('click', function() {
+                        google.accounts.id.prompt();
+                    });
+                }
             }
         };
 
-        // 2. Handle simple interface switching states
+        // Handle form visibility switching
         function toggleFormView(showSignup) {
             document.getElementById('loginSection').classList.toggle('hidden', showSignup);
             document.getElementById('signupSection').classList.toggle('hidden', !showSignup);
         }
 
-        // 3. Native Form Email Login Implementation
+        // Native Form Email Login Implementation
         async function handleFormLogin(e) {
             e.preventDefault();
             const identifier = document.getElementById('loginIdentifier').value;
@@ -115,7 +124,7 @@
             }
         }
 
-        // 4. Native Form Email Registration Implementation
+        // Native Form Email Registration Implementation
         async function handleFormSignup(e) {
             e.preventDefault();
             const name = document.getElementById('signName').value;
@@ -140,13 +149,23 @@
             }
         }
 
-        // 5. Trigger the initialized Google Sign-In prompt securely
-        function handleGoogleLoginClick() {
-            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-                google.accounts.id.prompt(); 
-            } else {
-                alert("Google identity script is still loading. Please wait a moment.");
+        // Forward token payloads to Render backend for verification checks
+        async function handleGoogleCredentialResponse(response) {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/google-login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: response.credential })
+                });
+                const data = await res.json();
+                if (!res.ok) return alert(data.error || "Google authentication failed.");
+
+                localStorage.setItem('user', JSON.stringify(data.user));
+                window.location.href = '/discover';
+            } catch (err) { 
+                alert("Could not complete verification pipeline checks with Google integration backend."); 
             }
         }
-
-        //
+    </script>
+</body>
+</html>
