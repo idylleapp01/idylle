@@ -7,25 +7,58 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { display: flex; height: 100vh; background-color: #1a1a1a; color: white; }
-        .hero-side { flex: 1.2; background: linear-gradient(135deg, #2b2b2b, #121212); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center; }
-        .form-side { flex: 0.8; background-color: #121212; display: flex; flex-direction: column; justify-content: center; padding: 60px; border-left: 1px solid #2d2d2d; }
-        h1 { font-size: 3.5rem; color: #b51a3a; font-weight: 800; letter-spacing: 2px; margin-bottom: 5px; }
-        .tagline { font-size: 1.2rem; color: #a0a0a0; margin-bottom: 40px; }
-        .action-btn { width: 100%; max-width: 340px; padding: 14px; margin-bottom: 15px; border-radius: 25px; border: 1px solid #444; background: transparent; color: white; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.2s; }
-        .action-btn:hover { background: rgba(255,255,255,0.05); }
-        .google-btn { background-color: #1a1a1a; border-color: #333; }
-        .google-btn:hover { background-color: #242424; }
-        .disclaimer { font-size: 0.75rem; color: #666; margin-top: 30px; }
-        h2 { font-size: 1.8rem; margin-bottom: 20px; color: #fff; }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background-color: #1f1f1f; color: white; font-size: 1rem; }
+        body { display: flex; height: 100vh; background-color: #121212; color: white; overflow: hidden; }
+        
+        /* Modern Split Screen Layout */
+        .hero-side { 
+            flex: 1.2; 
+            background: linear-gradient(135deg, #1f1f1f, #0d0d0d); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 40px; 
+            text-align: center; 
+        }
+        .form-side { 
+            flex: 0.8; 
+            background-color: #171717; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            padding: 60px; 
+            border-left: 1px solid #222; 
+        }
+
+        /* Branding Components */
+        h1 { font-size: 4rem; color: #b51a3a; font-weight: 800; letter-spacing: 4px; margin-bottom: 10px; }
+        .tagline { font-size: 1.2rem; color: #888; max-width: 400px; line-height: 1.6; }
+        h2 { font-size: 2rem; margin-bottom: 8px; color: #fff; font-weight: 700; }
+        .subtitle { font-size: 0.95rem; color: #888; margin-bottom: 24px; }
+
+        /* Unified Form Styles */
+        .input-group { margin-bottom: 18px; }
+        label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 6px; font-weight: 500; }
+        input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #2a2a2a; background-color: #1f1f1f; color: white; font-size: 0.95rem; transition: border-color 0.2s; }
         input:focus { outline: none; border-color: #b51a3a; }
-        .submit-btn { width: 100%; padding: 14px; background-color: #b51a3a; border: none; color: white; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        
+        .submit-btn { width: 100%; padding: 14px; background-color: #b51a3a; border: none; color: white; font-weight: 600; border-radius: 8px; cursor: pointer; font-size: 1rem; margin-top: 5px; transition: background 0.2s; }
         .submit-btn:hover { background-color: #94132e; }
-        .toggle-link { margin-top: 20px; font-size: 0.9rem; color: #aaa; text-align: center; cursor: pointer; }
-        .toggle-link span { color: #b51a3a; text-decoration: underline; }
+
+        /* Elegant Divider */
+        .divider { display: flex; align-items: center; text-align: center; color: #555; font-size: 0.85rem; margin: 20px 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #2a2a2a; }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
+
+        /* Unified Social Buttons placed inside the Form Controller */
+        .social-container { display: flex; flex-direction: column; gap: 12px; }
+        .action-btn { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #2a2a2a; background: #1f1f1f; color: white; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.2s, border-color 0.2s; }
+        .action-btn:hover { background: #262626; border-color: #3a3a3a; }
+        
+        .toggle-link { margin-top: 24px; font-size: 0.9rem; color: #aaa; text-align: center; cursor: pointer; }
+        .toggle-link span { color: #b51a3a; text-decoration: none; font-weight: 600; }
+        .toggle-link span:hover { text-decoration: underline; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -33,18 +66,14 @@
 
     <div class="hero-side">
         <h1>IDYLLE</h1>
-        <p class="tagline">Connections built on total trust</p>
-        
-        <button class="action-btn" onclick="alert('Mobile login feature coming soon!')">📞 Continue with mobile</button>
-        <button class="action-btn" onclick="toggleFormView(false)">✉️ Continue with email</button>
-        <button class="action-btn google-btn" id="googleSignInBtn">✨ Continue with Google</button>
-        
-        <p class="disclaimer">We will never share anything without your permission</p>
+        <p class="tagline">Connections built on total trust.</p>
     </div>
 
     <div class="form-side" id="authFormContainer">
+        
         <div id="loginSection">
             <h2>Welcome Back</h2>
+            <p class="subtitle">Please enter your details to sign in.</p>
             <form onsubmit="handleFormLogin(event)">
                 <div class="input-group">
                     <label>Email or Username</label>
@@ -54,18 +83,27 @@
                     <label>Password</label>
                     <input type="password" id="loginPassword" required placeholder="••••••••">
                 </div>
-                <button type="submit" class="submit-btn">Login</button>
+                <button type="submit" class="submit-btn">Sign In</button>
             </form>
+
+            <div class="divider">or</div>
+
+            <div class="social-container">
+                <button class="action-btn" id="googleSignInBtn">✨ Continue with Google</button>
+                <button class="action-btn" onclick="alert('Mobile login feature coming soon!')">📞 Continue with mobile</button>
+            </div>
+            
             <p class="toggle-link" onclick="toggleFormView(true)">Don't have an account? <span>Sign Up</span></p>
         </div>
 
         <div id="signupSection" class="hidden">
             <h2>Create Account</h2>
+            <p class="subtitle">Join IDYLLE and start building trusted connections.</p>
             <form onsubmit="handleFormSignup(event)">
-                <div class="input-group"><label>Full Name</label><input type="text" id="signName" required></div>
-                <div class="input-group"><label>Username</label><input type="text" id="signUser" required></div>
-                <div class="input-group"><label>Email Address</label><input type="email" id="signEmail" required></div>
-                <div class="input-group"><label>Password</label><input type="password" id="signPass" required></div>
+                <div class="input-group"><label>Full Name</label><input type="text" id="signName" required placeholder="John Doe"></div>
+                <div class="input-group"><label>Username</label><input type="text" id="signUser" required placeholder="johndoe"></div>
+                <div class="input-group"><label>Email Address</label><input type="email" id="signEmail" required placeholder="you@example.com"></div>
+                <div class="input-group"><label>Password</label><input type="password" id="signPass" required placeholder="••••••••"></div>
                 <div class="input-group"><label>Security Question: What is your hometown?</label><input type="text" id="signSecret" required placeholder="Answer verification query"></div>
                 <button type="submit" class="submit-btn">Register</button>
             </form>
@@ -77,16 +115,14 @@
         const BACKEND_URL = "https://idylle-backend.onrender.com";
         const CLIENT_ID = "716592672743-3866rn9h0p3le4kb6klehhjm9gf9pmh8.apps.googleusercontent.com"; 
 
-        // Initialize Google Auth Framework and bind event listeners safely on window load
+        // Safe Single Initialization Loop Lifecycle Hook
         window.onload = function () {
             if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-                // 1. Initialize Google Sign In Configuration
                 google.accounts.id.initialize({
                     client_id: CLIENT_ID,
                     callback: handleGoogleCredentialResponse
                 });
 
-                // 2. Bind the click event to our button safely after script evaluation
                 const googleBtn = document.getElementById('googleSignInBtn');
                 if (googleBtn) {
                     googleBtn.addEventListener('click', function() {
@@ -96,13 +132,11 @@
             }
         };
 
-        // Handle form visibility switching
         function toggleFormView(showSignup) {
             document.getElementById('loginSection').classList.toggle('hidden', showSignup);
             document.getElementById('signupSection').classList.toggle('hidden', !showSignup);
         }
 
-        // Native Form Email Login Implementation
         async function handleFormLogin(e) {
             e.preventDefault();
             const identifier = document.getElementById('loginIdentifier').value;
@@ -124,7 +158,6 @@
             }
         }
 
-        // Native Form Email Registration Implementation
         async function handleFormSignup(e) {
             e.preventDefault();
             const name = document.getElementById('signName').value;
@@ -149,7 +182,6 @@
             }
         }
 
-        // Forward token payloads to Render backend for verification checks
         async function handleGoogleCredentialResponse(response) {
             try {
                 const res = await fetch(`${BACKEND_URL}/api/google-login`, {
