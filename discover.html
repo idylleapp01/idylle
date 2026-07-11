@@ -3,37 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IDYLLE - Discover</title>
+    <title>IDYLLE - Discover & Profile Settings</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #121212; color: white; display: flex; flex-direction: column; height: 100vh; }
+        body { background-color: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
         /* Navigation Header */
-        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background-color: #171717; border-bottom: 1px solid #222; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background-color: #171717; border-bottom: 1px solid #222; z-index: 10; }
         .logo { font-size: 1.8rem; color: #b51a3a; font-weight: 800; letter-spacing: 2px; }
-        .user-badge { display: flex; align-items: center; gap: 12px; }
-        .logout-btn { background: none; border: 1px solid #b51a3a; color: #b51a3a; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .nav-actions { display: flex; align-items: center; gap: 15px; }
+        
+        .nav-btn { background: #222; border: 1px solid #333; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .nav-btn:hover { background: #2a2a2a; border-color: #444; }
+        .logout-btn { background: none; border: 1px solid #b51a3a; color: #b51a3a; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
         .logout-btn:hover { background-color: #b51a3a; color: white; }
 
-        /* Feed Discovery Container */
-        main { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .card-container { width: 100%; max-width: 400px; height: 550px; background-color: #171717; border-radius: 16px; border: 1px solid #2a2a2a; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        /* Main Feed View Layout */
+        main { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; overflow-y: auto; }
+        .card-container { width: 100%; max-width: 420px; min-height: 580px; background-color: #171717; border-radius: 16px; border: 1px solid #2a2a2a; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        /* Media & Content Slots */
-        .profile-img-container { flex: 1; background: linear-gradient(to bottom, #2a2a2a, #1f1f1f); display: flex; justify-content: center; align-items: center; position: relative; }
-        .profile-img-container::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(to top, rgba(23,23,23,1), rgba(23,23,23,0)); }
-        .placeholder-icon { font-size: 5rem; opacity: 0.15; }
+        .profile-img-container { flex: 1; min-height: 250px; background: linear-gradient(to bottom, #2a2a2a, #1f1f1f); display: flex; justify-content: center; align-items: center; position: relative; }
+        .profile-img-container img { width: 100%; height: 100%; object-fit: cover; position: absolute; }
+        .profile-img-container::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; background: linear-gradient(to top, #171717, rgba(23,23,23,0)); }
+        .placeholder-icon { font-size: 5rem; opacity: 0.15; z-index: 0; }
         
         .profile-details { padding: 24px; background-color: #171717; z-index: 1; }
-        .profile-name { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
-        .profile-bio { font-size: 0.95rem; color: #aaa; line-height: 1.5; min-height: 45px; }
+        .profile-header-info { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+        .profile-name { font-size: 1.6rem; font-weight: 700; }
+        .profile-meta { font-size: 0.9rem; color: #b51a3a; font-weight: 600; margin-bottom: 10px; }
+        .profile-bio { font-size: 0.95rem; color: #ccc; line-height: 1.5; margin-bottom: 12px; }
+        
+        /* Badges & Tags */
+        .tag-container { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .badge { background: #262626; border: 1px solid #363636; color: #aaa; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; }
+        .badge.goal { border-color: #b51a3a; color: #ff6b8b; }
 
-        /* Action Buttons */
-        .action-bar { display: flex; justify-content: space-around; padding: 20px 24px 30px; background-color: #171717; border-top: 1px solid #222; }
-        .swipe-btn { width: 65px; height: 65px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; transition: transform 0.1s; }
+        .action-bar { display: flex; justify-content: space-around; padding: 15px 24px 25px; background-color: #171717; }
+        .swipe-btn { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.4rem; transition: transform 0.1s; }
         .swipe-btn:active { transform: scale(0.9); }
         .btn-dislike { background-color: #222; color: #ff4444; border: 1px solid #333; }
-        .btn-like { background-color: #b51a3a; color: white; box-shadow: 0 4px 15px rgba(181, 26, 58, 0.3); }
+        .btn-like { background-color: #b51a3a; color: white; }
+
+        /* MODAL INTERFACE STYLING */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 1; transition: opacity 0.2s; }
+        .modal-card { width: 90%; max-width: 500px; max-height: 85vh; background: #171717; border: 1px solid #2a2a2a; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        .modal-header { padding: 20px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 15px; }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid #222; display: flex; justify-content: flex-end; gap: 10px; }
+
+        /* Form Components inside Modal */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .field-group { display: flex; flex-direction: column; gap: 6px; }
+        .field-group label { font-size: 0.8rem; color: #aaa; font-weight: 600; }
+        .field-group input, .field-group select, .field-group textarea { background: #1f1f1f; border: 1px solid #2a2a2a; color: white; padding: 10px; border-radius: 6px; font-size: 0.9rem; }
+        .field-group textarea { resize: none; height: 60px; }
+        
+        .checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .checkbox-row input { width: auto; }
 
         .status-msg { text-align: center; color: #666; font-size: 1.1rem; }
         .hidden { display: none !important; }
@@ -43,8 +69,8 @@
 
     <header>
         <div class="logo">IDYLLE</div>
-        <div class="user-badge">
-            <span id="currentUserName" style="color: #aaa; font-size: 0.95rem;"></span>
+        <div class="nav-actions">
+            <button class="nav-btn" onclick="openProfileModal()">⚙️ Edit Profile</button>
             <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
         </div>
     </header>
@@ -52,11 +78,18 @@
     <main>
         <div class="card-container" id="profileCard">
             <div class="profile-img-container">
-                <div class="placeholder-icon">👤</div>
+                <img id="profileCardImg" src="" alt="" class="hidden">
+                <div class="placeholder-icon" id="profileCardIcon">👤</div>
             </div>
             <div class="profile-details">
-                <div class="profile-name" id="profileName">Loading Profiles...</div>
-                <div class="profile-bio" id="profileBio">Connecting to secure matching layers...</div>
+                <div class="profile-header-info">
+                    <span class="profile-name" id="profileCardName">Loading...</span>
+                </div>
+                <div class="profile-meta" id="profileCardMeta">Location Info</div>
+                <p class="profile-bio" id="profileCardBio">Biography descriptions loaded here...</p>
+                
+                <div class="tag-container" id="profileCardTags">
+                    </div>
             </div>
             <div class="action-bar">
                 <button class="swipe-btn btn-dislike" onclick="handleSwipe(false)">✖</button>
@@ -69,38 +102,122 @@
         </div>
     </main>
 
+    <div class="modal-overlay hidden" id="profileModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>My Profile Customization</h3>
+                <button class="nav-btn" style="padding: 4px 8px;" onclick="closeProfileModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="field-group">
+                        <label>Display Name</label>
+                        <input type="text" id="myDetailsName">
+                    </div>
+                    <div class="field-group">
+                        <label>Approximate Area/Location</label>
+                        <input type="text" id="myDetailsLocation" placeholder="e.g. New York, NY">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="field-group">
+                        <label>Gender</label>
+                        <select id="myDetailsGender">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Non-Binary">Non-Binary</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>Relationship Goal</label>
+                        <select id="myDetailsGoal">
+                            <option value="Long-term partnership">Long-term partnership</option>
+                            <option value="Short-term fun">Short-term fun</option>
+                            <option value="New friends">New friends</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label>Profile Picture Image URL</label>
+                    <input type="url" id="myDetailsPic" placeholder="https://images.unsplash.com/...">
+                </div>
+
+                <div class="field-group">
+                    <label>Short Biography</label>
+                    <textarea id="myDetailsBio" placeholder="Say a little about yourself..."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="field-group">
+                        <label>Primary Lifestyle/Interest Tag</label>
+                        <input type="text" id="myDetailsInterest" placeholder="e.g. Hiking, Cooking, Tech">
+                    </div>
+                    <div class="field-group">
+                        <label>Looking-For Preference</label>
+                        <select id="myDetailsPreference">
+                            <option value="Everyone">Everyone</option>
+                            <option value="Men">Men</option>
+                            <option value="Women">Women</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="checkbox-row">
+                    <input type="checkbox" id="myDetailsVisibility" checked>
+                    <label for="myDetailsVisibility" style="font-size: 0.85rem; color: #aaa;">Show my profile in discovery matching searches</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="nav-btn" onclick="closeProfileModal()">Cancel</button>
+                <button class="submit-btn" style="width: auto; margin-top:0; padding: 8px 20px;" onclick="saveProfileChanges()">Save Profile</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const BACKEND_URL = "https://idylle-backend.onrender.com";
         let currentUser = null;
         let profilesQueue = [];
         let currentProfileIndex = 0;
 
-        // Verify Identity Session Token on Load Lifecycle
         window.onload = function() {
             const sessionData = localStorage.getItem('user');
             if (!sessionData) {
-                // Kick back to access form panel if session string is invalid
                 window.location.href = 'index.html';
                 return;
             }
             currentUser = JSON.parse(sessionData);
-            document.getElementById('currentUserName').innerText = `@${currentUser.username}`;
             
+            // Populate our active editing forms from memory states
+            populateProfileFormValues();
             fetchDiscoverFeed();
         };
+
+        function populateProfileFormValues() {
+            document.getElementById('myDetailsName').value = currentUser.name || '';
+            document.getElementById('myDetailsLocation').value = currentUser.location || '';
+            document.getElementById('myDetailsGender').value = currentUser.gender || 'Male';
+            document.getElementById('myDetailsGoal').value = currentUser.relationship_goal || 'Long-term partnership';
+            document.getElementById('myDetailsPic').value = currentUser.profile_pic_url || '';
+            document.getElementById('myDetailsBio').value = currentUser.bio || '';
+            document.getElementById('myDetailsInterest').value = currentUser.interests || '';
+            document.getElementById('myDetailsPreference').value = currentUser.looking_for || 'Everyone';
+            document.getElementById('myDetailsVisibility').checked = currentUser.is_visible !== false;
+        }
 
         async function fetchDiscoverFeed() {
             try {
                 const res = await fetch(`${BACKEND_URL}/api/users/discover?userId=${currentUser.id}`);
-                if (!res.ok) throw new Error("Could not parse profile array payloads.");
+                if (!res.ok) throw new Error("Could not parse dashboard data arrays.");
                 
                 profilesQueue = await res.json();
                 currentProfileIndex = 0;
                 renderCurrentProfile();
             } catch (err) {
                 console.error(err);
-                document.getElementById('profileName').innerText = "Connection Delay";
-                document.getElementById('profileBio').innerText = "Failed to pull fresh application profiles from data pipelines.";
+                document.getElementById('profileCardName').innerText = "Network Delay";
             }
         }
 
@@ -114,17 +231,41 @@
             document.getElementById('profileCard').classList.remove('hidden');
             document.getElementById('emptyState').classList.add('hidden');
 
-            const activeProfile = profilesQueue[currentProfileIndex];
-            document.getElementById('profileName').innerText = activeProfile.name || `@${activeProfile.username}`;
-            document.getElementById('profileBio').innerText = activeProfile.bio || "This user hasn't set up a matching biography note yet.";
+            const active = profilesQueue[currentProfileIndex];
+            document.getElementById('profileCardName').innerText = active.name || `@${active.username}`;
+            document.getElementById('profileCardMeta').innerText = `${active.gender || 'User'} • ${active.location || 'Nearby'}`;
+            document.getElementById('profileCardBio').innerText = active.bio || "No biography provided yet.";
+
+            // Handle Photo rendering structures
+            const cardImg = document.getElementById('profileCardImg');
+            const cardIcon = document.getElementById('profileCardIcon');
+            if(active.profile_pic_url && active.profile_pic_url.trim() !== "") {
+                cardImg.src = active.profile_pic_url;
+                cardImg.classList.remove('hidden');
+                cardIcon.classList.add('hidden');
+            } else {
+                cardImg.classList.add('hidden');
+                cardIcon.classList.remove('hidden');
+            }
+
+            // Inject Lifestyle and Goal Badges Dynamic Fields
+            const tagsBox = document.getElementById('profileCardTags');
+            tagsBox.innerHTML = '';
+            
+            if(active.relationship_goal) {
+                tagsBox.innerHTML += `<span class="badge goal">🎯 ${active.relationship_goal}</span>`;
+            }
+            if(active.interests) {
+                active.interests.split(',').forEach(tag => {
+                    if(tag.trim()) tagsBox.innerHTML += `<span class="badge">✨ ${tag.trim()}</span>`;
+                });
+            }
         }
 
         async function handleSwipe(isLike) {
             if (currentProfileIndex >= profilesQueue.length) return;
-            
             const activeProfile = profilesQueue[currentProfileIndex];
             
-            // Advance UI index representation safely
             currentProfileIndex++;
             renderCurrentProfile();
 
@@ -133,19 +274,34 @@
                     const res = await fetch(`${BACKEND_URL}/api/like`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            likerId: currentUser.id,
-                            likedId: activeProfile.id
-                        })
+                        body: JSON.stringify({ likerId: currentUser.id, likedId: activeProfile.id })
                     });
                     const data = await res.json();
-                    if (data.match) {
-                        alert(`✨ Match verified! You and ${activeProfile.name || 'this user'} have established a trusted connection link.`);
-                    }
-                } catch (err) {
-                    console.error("Failed to push connection state changes down the stack:", err);
-                }
+                    if (data.match) alert(`✨ Connection! You matched with ${activeProfile.name || 'this user'}!`);
+                } catch (err) { console.error(err); }
             }
+        }
+
+        /* Modal Dialog View Controls */
+        function openProfileModal() { document.getElementById('profileModal').classList.remove('hidden'); }
+        function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
+
+        function saveProfileChanges() {
+            // Update active state configuration changes inside memory tracking pipelines
+            currentUser.name = document.getElementById('myDetailsName').value;
+            currentUser.location = document.getElementById('myDetailsLocation').value;
+            currentUser.gender = document.getElementById('myDetailsGender').value;
+            currentUser.relationship_goal = document.getElementById('myDetailsGoal').value;
+            currentUser.profile_pic_url = document.getElementById('myDetailsPic').value;
+            currentUser.bio = document.getElementById('myDetailsBio').value;
+            currentUser.interests = document.getElementById('myDetailsInterest').value;
+            currentUser.looking_for = document.getElementById('myDetailsPreference').value;
+            currentUser.is_visible = document.getElementById('myDetailsVisibility').checked;
+
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            closeProfileModal();
+            alert("Your profile configuration fields have been saved locally!");
+            fetchDiscoverFeed(); // Refresh the current view metrics context automatically
         }
 
         function handleLogout() {
