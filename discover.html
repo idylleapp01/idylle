@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDYLLE - Discover</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #121212; color: white; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Navigation Header */
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background-color: #171717; border-bottom: 1px solid #222; }
+        .logo { font-size: 1.8rem; color: #b51a3a; font-weight: 800; letter-spacing: 2px; }
+        .user-badge { display: flex; align-items: center; gap: 12px; }
+        .logout-btn { background: none; border: 1px solid #b51a3a; color: #b51a3a; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .logout-btn:hover { background-color: #b51a3a; color: white; }
+
+        /* Feed Discovery Container */
+        main { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .card-container { width: 100%; max-width: 400px; height: 550px; background-color: #171717; border-radius: 16px; border: 1px solid #2a2a2a; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* Media & Content Slots */
+        .profile-img-container { flex: 1; background: linear-gradient(to bottom, #2a2a2a, #1f1f1f); display: flex; justify-content: center; align-items: center; position: relative; }
+        .profile-img-container::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(to top, rgba(23,23,23,1), rgba(23,23,23,0)); }
+        .placeholder-icon { font-size: 5rem; opacity: 0.15; }
+        
+        .profile-details { padding: 24px; background-color: #171717; z-index: 1; }
+        .profile-name { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
+        .profile-bio { font-size: 0.95rem; color: #aaa; line-height: 1.5; min-height: 45px; }
+
+        /* Action Buttons */
+        .action-bar { display: flex; justify-content: space-around; padding: 20px 24px 30px; background-color: #171717; border-top: 1px solid #222; }
+        .swipe-btn { width: 65px; height: 65px; border-radius: 50%; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; transition: transform 0.1s; }
+        .swipe-btn:active { transform: scale(0.9); }
+        .btn-dislike { background-color: #222; color: #ff4444; border: 1px solid #333; }
+        .btn-like { background-color: #b51a3a; color: white; box-shadow: 0 4px 15px rgba(181, 26, 58, 0.3); }
+
+        .status-msg { text-align: center; color: #666; font-size: 1.1rem; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">IDYLLE</div>
+        <div class="user-badge">
+            <span id="currentUserName" style="color: #aaa; font-size: 0.95rem;"></span>
+            <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="card-container" id="profileCard">
+            <div class="profile-img-container">
+                <div class="placeholder-icon">👤</div>
+            </div>
+            <div class="profile-details">
+                <div class="profile-name" id="profileName">Loading Profiles...</div>
+                <div class="profile-bio" id="profileBio">Connecting to secure matching layers...</div>
+            </div>
+            <div class="action-bar">
+                <button class="swipe-btn btn-dislike" onclick="handleSwipe(false)">✖</button>
+                <button class="swipe-btn btn-like" onclick="handleSwipe(true)">❤</button>
+            </div>
+        </div>
+
+        <div id="emptyState" class="status-msg hidden">
+            ✨ You've discovered everyone in your area for now! Check back shortly.
+        </div>
+    </main>
+
+    <script>
+        const BACKEND_URL = "https://idylle-backend.onrender.com";
+        let currentUser = null;
+        let profilesQueue = [];
+        let currentProfileIndex = 0;
+
+        // Verify Identity Session Token on Load Lifecycle
+        window.onload = function() {
+            const sessionData = localStorage.getItem('user');
+            if (!sessionData) {
+                // Kick back to access form panel if session string is invalid
+                window.location.href = 'index.html';
+                return;
+            }
+            currentUser = JSON.parse(sessionData);
+            document.getElementById('currentUserName').innerText = `@${currentUser.username}`;
+            
+            fetchDiscoverFeed();
+        };
+
+        async function fetchDiscoverFeed() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/users/discover?userId=${currentUser.id}`);
+                if (!res.ok) throw new Error("Could not parse profile array payloads.");
+                
+                profilesQueue = await res.json();
+                currentProfileIndex = 0;
+                renderCurrentProfile();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('profileName').innerText = "Connection Delay";
+                document.getElementById('profileBio').innerText = "Failed to pull fresh application profiles from data pipelines.";
+            }
+        }
+
+        function renderCurrentProfile() {
+            if (!profilesQueue || profilesQueue.length === 0 || currentProfileIndex >= profilesQueue.length) {
+                document.getElementById('profileCard').classList.add('hidden');
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('profileCard').classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
+
+            const activeProfile = profilesQueue[currentProfileIndex];
+            document.getElementById('profileName').innerText = activeProfile.name || `@${activeProfile.username}`;
+            document.getElementById('profileBio').innerText = activeProfile.bio || "This user hasn't set up a matching biography note yet.";
+        }
+
+        async function handleSwipe(isLike) {
+            if (currentProfileIndex >= profilesQueue.length) return;
+            
+            const activeProfile = profilesQueue[currentProfileIndex];
+            
+            // Advance UI index representation safely
+            currentProfileIndex++;
+            renderCurrentProfile();
+
+            if (isLike) {
+                try {
+                    const res = await fetch(`${BACKEND_URL}/api/like`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            likerId: currentUser.id,
+                            likedId: activeProfile.id
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.match) {
+                        alert(`✨ Match verified! You and ${activeProfile.name || 'this user'} have established a trusted connection link.`);
+                    }
+                } catch (err) {
+                    console.error("Failed to push connection state changes down the stack:", err);
+                }
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
