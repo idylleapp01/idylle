@@ -24,7 +24,7 @@ const pool = new Pool({
 
 async function initDB() {
     try {
-        // Users base table
+        // Users base structure table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -35,7 +35,7 @@ async function initDB() {
             );
         `);
 
-        // Migration schema structures
+        // Synchronize and apply demographic and matching migrations
         const alterQueries = [
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);`,
             `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;`, 
@@ -50,7 +50,13 @@ async function initDB() {
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_pic_url TEXT;`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR(255);`,
-            `ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);`
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS birthdate DATE;`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS max_distance_km INT DEFAULT 50;`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS min_age_pref INT DEFAULT 18;`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS max_age_pref INT DEFAULT 99;`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS latitude NUMERIC(9,6);`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS longitude NUMERIC(9,6);`
         ];
 
         for (const query of alterQueries) {
@@ -68,7 +74,7 @@ async function initDB() {
             );
         `);
 
-        // Mutual matches table
+        // Mutual matches data table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS matches (
                 id SERIAL PRIMARY KEY,
@@ -79,7 +85,7 @@ async function initDB() {
             );
         `);
 
-        // Chat messages table
+        // Communication message streams
         await pool.query(`
             CREATE TABLE IF NOT EXISTS messages (
                 id SERIAL PRIMARY KEY,
@@ -90,7 +96,7 @@ async function initDB() {
             );
         `);
 
-        // Icebreakers dynamic table
+        // System icebreakers conversation engine
         await pool.query(`
             CREATE TABLE IF NOT EXISTS icebreakers (
                 id SERIAL PRIMARY KEY,
@@ -98,7 +104,10 @@ async function initDB() {
             );
         `);
 
-        // Pre-populate icebreakers if empty
+        // Ensure indices for advanced querying pipelines are optimized
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_discovery_filters ON users(gender, is_visible);`);
+
+        // Add startup data rows
         const countCheck = await pool.query('SELECT COUNT(*) FROM icebreakers');
         if (parseInt(countCheck.rows[0].count) === 0) {
             await pool.query(`
@@ -171,19 +180,64 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-/* DISCOVERY FEED & ACTIONS */
+/* DYNAMIC ADVANCED DISCOVERY ENGINE */
 
 app.get('/api/users/discover', async (req, res) => {
-    const { userId } = req.query;
+    const { userId, search, gender, goal, interest } = req.query;
+    
     try {
-        const feed = await pool.query(
-            `SELECT id, name, username, bio, location, gender, relationship_goal, interests, profile_pic_url FROM users 
-             WHERE id != $1 AND is_visible = true AND id NOT IN (SELECT liked_id FROM likes WHERE liker_id = $1) 
-             ORDER BY RANDOM() LIMIT 10`, [userId]
-        );
+        const userPrefs = await pool.query(`SELECT looking_for, gender FROM users WHERE id = $1`, [userId]);
+        if (userPrefs.rows.length === 0) return res.status(404).json({ error: "User context not found." });
+        
+        const currentUser = userPrefs.rows[0];
+        let queryParams = [userId];
+        let paramCounter = 2;
+        
+        let sql = `
+            SELECT id, name, username, bio, location, gender, relationship_goal, interests, profile_pic_url 
+            FROM users 
+            WHERE id != $1 
+              AND is_visible = true 
+              AND id NOT IN (SELECT liked_id FROM likes WHERE liker_id = $1)
+        `;
+
+        if (currentUser.looking_for && currentUser.looking_for !== 'Everyone') {
+            sql += ` AND gender = $${paramCounter}`;
+            queryParams.push(currentUser.looking_for === 'Men' ? 'Male' : 'Female');
+            paramCounter++;
+        }
+
+        if (search) {
+            sql += ` AND (name ILIKE $${paramCounter} OR bio ILIKE $${paramCounter} OR username ILIKE $${paramCounter})`;
+            queryParams.push(`%${search}%`);
+            paramCounter++;
+        }
+
+        if (gender) {
+            sql += ` AND gender = $${paramCounter}`;
+            queryParams.push(gender);
+            paramCounter++;
+        }
+        
+        if (goal) {
+            sql += ` AND relationship_goal = $${paramCounter}`;
+            queryParams.push(goal);
+            paramCounter++;
+        }
+
+        if (interest) {
+            sql += ` AND interests ILIKE $${paramCounter}`;
+            queryParams.push(`%${interest}%`);
+            paramCounter++;
+        }
+
+        sql += ` ORDER BY RANDOM() LIMIT 20`;
+
+        const feed = await pool.query(sql, queryParams);
         res.status(200).json(feed.rows);
     } catch (err) {
-        res.status(500).json({ error: "Feed generation error." });
+        console.error(err);
+        res.status(500).json({ error: "Advanced discovery compilation failure." });
     }
 });
 
@@ -192,7 +246,6 @@ app.post('/api/like', async (req, res) => {
     try {
         await pool.query(`INSERT INTO likes (liker_id, liked_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [likerId, likedId]);
         
-        // Check for mutual connection
         const matchCheck = await pool.query(`SELECT * FROM likes WHERE liker_id = $1 AND liked_id = $2`, [likedId, likerId]);
         let isMatch = matchCheck.rows.length > 0;
 
@@ -208,7 +261,7 @@ app.post('/api/like', async (req, res) => {
     }
 });
 
-/* INBOX & CHAT SYSTEM OPERATIONS */
+/* CHAT MESSAGING AND CAROUSEL ROUTING */
 
 app.get('/api/matches', async (req, res) => {
     const { userId } = req.query;
@@ -218,7 +271,7 @@ app.get('/api/matches', async (req, res) => {
             FROM matches m
             JOIN users u ON (u.id = m.user_one OR u.id = m.user_two)
             WHERE (m.user_one = $1 OR m.user_two = $1) AND u.id != $1
-            ORDER BY m.created_at DESC
+            ORDER m.created_at DESC
         `, [userId]);
         res.status(200).json(matches.rows);
     } catch (err) {

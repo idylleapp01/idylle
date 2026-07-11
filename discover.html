@@ -3,17 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IDYLLE - Discover & Settings</title>
+    <title>IDYLLE - Advanced Discover Feed</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
         body { background-color: #121212; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
         header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background-color: #171717; border-bottom: 1px solid #222; }
-        .logo { font-size: 1.8rem; color: #b51a3a; font-weight: 800; letter-spacing: 2px; }
-        .nav-actions { display: flex; gap: 15px; }
-        .nav-btn { background: #222; border: 1px solid #333; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .logo { font-size: 1.8rem; color: #b51a3a; font-weight: 800; letter-spacing: 2px; text-decoration: none; }
+        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        .nav-btn { background: #222; border: 1px solid #333; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; text-decoration: none; font-size: 0.9rem; }
         .logout-btn { background: none; border: 1px solid #b51a3a; color: #b51a3a; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+
+        .filter-drawer { background: #171717; padding: 15px 40px; border-bottom: 1px solid #222; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+        .filter-drawer input, .filter-drawer select { background: #222; border: 1px solid #333; color: white; padding: 8px 12px; border-radius: 6px; font-size: 0.9rem; outline: none; }
+        .filter-drawer input:focus, .filter-drawer select:focus { border-color: #b51a3a; }
 
         main { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; overflow-y: auto; }
         .card-container { width: 100%; max-width: 420px; background-color: #171717; border-radius: 16px; border: 1px solid #2a2a2a; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -32,7 +36,8 @@
         .badge.goal { border-color: #b51a3a; color: #ff6b8b; }
 
         .action-bar { display: flex; justify-content: space-around; padding: 0 24px 24px; }
-        .swipe-btn { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; }
+        .swipe-btn { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        .swipe-btn:active { transform: scale(0.9); }
         .btn-dislike { background: #222; color: #ff4444; border: 1px solid #333; }
         .btn-like { background: #b51a3a; color: white; }
 
@@ -47,21 +52,44 @@
         .field-group label { font-size: 0.8rem; color: #aaa; }
         .field-group input, .field-group select, .field-group textarea { background: #1f1f1f; border: 1px solid #2a2a2a; color: white; padding: 10px; border-radius: 6px; font-size: 0.9rem; }
         
-        .upload-trigger-btn { background: #1f1f1f; border: 1px dashed #444; color: #aaa; padding: 12px; border-radius: 6px; cursor: pointer; text-align: center; }
-        .cropper-stage-wrapper { margin-top: 10px; max-height: 200px; overflow: hidden; background: #000; border-radius: 6px; }
+        .upload-trigger-btn { background: #1f1f1f; border: 1px dashed #444; color: #aaa; padding: 12px; border-radius: 6px; cursor: pointer; text-align: center; font-weight: 600; }
+        .cropper-stage-wrapper { margin-top: 10px; max-height: 200px; overflow: hidden; background: #000; border-radius: 6px; border: 1px solid #333; }
         .cropper-stage-wrapper img { max-width: 100%; display: block; }
         .hidden { display: none !important; }
+        #emptyState { color: #666; font-size: 1.1rem; text-align: center; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="logo">IDYLLE</div>
+        <a href="discover.html" class="logo">IDYLLE</a>
         <div class="nav-actions">
+            <a href="inbox.html" class="nav-btn">💬 Chat Inbox</a>
             <button class="nav-btn" onclick="openProfileModal()">⚙️ Edit Profile</button>
             <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
         </div>
     </header>
+
+    <div class="filter-drawer">
+        <input type="text" id="searchKeyword" placeholder="Search keywords..." oninput="applyAdvancedFilters()">
+        
+        <select id="filterGender" onchange="applyAdvancedFilters()">
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-Binary">Non-Binary</option>
+        </select>
+
+        <select id="filterGoal" onchange="applyAdvancedFilters()">
+            <option value="">All Goals</option>
+            <option value="Long-term partnership">Long-term partnership</option>
+            <option value="Short-term fun">Short-term fun</option>
+        </select>
+
+        <input type="text" id="filterInterest" placeholder="Filter by interest..." oninput="applyAdvancedFilters()">
+        
+        <button onclick="clearDiscoveryFilters()" style="background:none; border:1px solid #b51a3a; color:#b51a3a; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:0.9rem;">Clear Filters</button>
+    </div>
 
     <main>
         <div class="card-container" id="profileCard">
@@ -70,9 +98,9 @@
                 <div class="placeholder-icon" id="profileCardIcon">👤</div>
             </div>
             <div class="profile-details">
-                <div class="profile-name" id="profileCardName">Loading Stack...</div>
+                <div class="profile-name" id="profileCardName">Loading Profiles...</div>
                 <div class="profile-meta" id="profileCardMeta">Location</div>
-                <p class="profile-bio" id="profileCardBio">Bio metrics displaying...</p>
+                <p class="profile-bio" id="profileCardBio">Synchronizing discovery indices...</p>
                 <div class="tag-container" id="profileCardTags"></div>
             </div>
             <div class="action-bar">
@@ -80,7 +108,7 @@
                 <button class="swipe-btn btn-like" onclick="handleSwipe(true)">❤</button>
             </div>
         </div>
-        <div id="emptyState" class="hidden">✨ No profiles found nearby.</div>
+        <div id="emptyState" class="hidden">✨ No profiles match your filtering options. Try widening your criteria.</div>
     </main>
 
     <div class="modal-overlay hidden" id="profileModal">
@@ -160,6 +188,7 @@
         let currentProfileIndex = 0;
         let cropperInstance = null;
         let croppedImageBase64 = "";
+        let debounceTimer;
 
         window.onload = function() {
             const session = localStorage.getItem('user');
@@ -184,10 +213,26 @@
             }
         }
 
+        function applyAdvancedFilters() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                currentProfileIndex = 0;
+                fetchDiscoverFeed();
+            }, 400);
+        }
+
+        function clearDiscoveryFilters() {
+            document.getElementById('searchKeyword').value = '';
+            document.getElementById('filterGender').value = '';
+            document.getElementById('filterGoal').value = '';
+            document.getElementById('filterInterest').value = '';
+            currentProfileIndex = 0;
+            fetchDiscoverFeed();
+        }
+
         function initializeImageCropper(fileInput) {
             const file = fileInput.files[0];
             if (!file) return;
-
             if (file.size > 5 * 1024 * 1024) { alert("Max file size limit is 5MB."); return; }
 
             const reader = new FileReader();
@@ -203,8 +248,14 @@
         }
 
         async function fetchDiscoverFeed() {
+            const search = document.getElementById('searchKeyword').value;
+            const gender = document.getElementById('filterGender').value;
+            const goal = document.getElementById('filterGoal').value;
+            const interest = document.getElementById('filterInterest').value;
+
             try {
-                const res = await fetch(`${BACKEND_URL}/api/users/discover?userId=${currentUser.id}`);
+                const params = new URLSearchParams({ userId: currentUser.id, search, gender, goal, interest });
+                const res = await fetch(`${BACKEND_URL}/api/users/discover?${params.toString()}`);
                 profilesQueue = await res.json();
                 renderCurrentProfile();
             } catch (err) { console.error(err); }
@@ -291,8 +342,8 @@
 
             localStorage.setItem('user', JSON.stringify(currentUser));
             closeProfileModal();
-            renderCurrentProfile();
-            alert("Profile settings synchronized locally!");
+            fetchDiscoverFeed();
+            alert("Profile settings synchronized!");
         }
 
         function handleLogout() { localStorage.clear(); window.location.href = 'index.html'; }
