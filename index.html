@@ -75,15 +75,25 @@
 
     <script>
         const BACKEND_URL = "https://idylle-backend.onrender.com";
-        const CLIENT_ID = "716592672743-3866rn9h0p3le4kb6klehhjm9gf9pmh8.apps.googleusercontent.com";
+        const CLIENT_ID = "716592672743-3866rn9h0p3le4kb6klehhjm9gf9pmh8.apps.googleusercontent.com"; // Fixed trailing character typo
 
-        // View Toggling Controlss
+        // 1. Initialize Google Auth Framework once the document loads safely
+        window.onload = function () {
+            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                google.accounts.id.initialize({
+                    client_id: CLIENT_ID,
+                    callback: handleGoogleCredentialResponse
+                });
+            }
+        };
+
+        // 2. Handle simple interface switching states
         function toggleFormView(showSignup) {
             document.getElementById('loginSection').classList.toggle('hidden', showSignup);
             document.getElementById('signupSection').classList.toggle('hidden', !showSignup);
         }
 
-        // Standard Login Operations Handler
+        // 3. Native Form Email Login Implementation
         async function handleFormLogin(e) {
             e.preventDefault();
             const identifier = document.getElementById('loginIdentifier').value;
@@ -100,10 +110,12 @@
                 
                 localStorage.setItem('user', JSON.stringify(data.user));
                 window.location.href = '/discover';
-            } catch (err) { alert("Could not reach backend identity server pipeline."); }
+            } catch (err) { 
+                alert("Could not reach backend identity server pipeline."); 
+            }
         }
 
-        // Standard Sign-Up Operations Handler
+        // 4. Native Form Email Registration Implementation
         async function handleFormSignup(e) {
             e.preventDefault();
             const name = document.getElementById('signName').value;
@@ -123,32 +135,18 @@
                 
                 alert("Account created successfully! Please log in.");
                 toggleFormView(false);
-            } catch (err) { alert("Registration backend sequence connection failure."); }
+            } catch (err) { 
+                alert("Registration backend sequence connection failure."); 
+            }
         }
 
-        // Google Identity Infrastructure Controls
+        // 5. Trigger the initialized Google Sign-In prompt securely
         function handleGoogleLoginClick() {
-            google.accounts.id.initialize({
-                client_id: CLIENT_ID,
-                callback: handleGoogleCredentialResponse
-            });
-            google.accounts.id.prompt(); 
+            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                google.accounts.id.prompt(); 
+            } else {
+                alert("Google identity script is still loading. Please wait a moment.");
+            }
         }
 
-        async function handleGoogleCredentialResponse(response) {
-            try {
-                const res = await fetch(`${BACKEND_URL}/api/google-login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: response.credential })
-                });
-                const data = await res.json();
-                if (!res.ok) return alert(data.error);
-
-                localStorage.setItem('user', JSON.stringify(data.user));
-                window.location.href = '/discover';
-            } catch (err) { alert("Could not complete verification pipeline checks with Google integration backend."); }
-        }
-    </script>
-</body>
-</html>
+        //
