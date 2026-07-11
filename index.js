@@ -104,8 +104,20 @@ async function initDB() {
             );
         `);
 
+        // Track secondary gallery images for user profiles
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_photos (
+                id SERIAL PRIMARY KEY,
+                user_id INT REFERENCES users(id) ON DELETE CASCADE,
+                image_url TEXT NOT NULL,
+                is_approved BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
         // Ensure indices for advanced querying pipelines are optimized
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_discovery_filters ON users(gender, is_visible);`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_photos_user ON user_photos(user_id);`);
 
         // Add startup data rows
         const countCheck = await pool.query('SELECT COUNT(*) FROM icebreakers');
@@ -271,7 +283,7 @@ app.get('/api/matches', async (req, res) => {
             FROM matches m
             JOIN users u ON (u.id = m.user_one OR u.id = m.user_two)
             WHERE (m.user_one = $1 OR m.user_two = $1) AND u.id != $1
-            ORDER m.created_at DESC
+            ORDER BY m.created_at DESC
         `, [userId]);
         res.status(200).json(matches.rows);
     } catch (err) {
@@ -313,6 +325,45 @@ app.post('/api/messages', async (req, res) => {
         res.status(201).json(newMessage.rows[0]);
     } catch (err) {
         res.status(500).json({ error: "Failed to submit new text record." });
+    }
+});
+
+/* MULTI-PHOTO PLATFORM MANAGEMENT */
+
+app.get('/api/users/:id/photos', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const photos = await pool.query(`SELECT id, image_url FROM user_photos WHERE user_id = $1 ORDER BY id ASC`, [id]);
+        res.status(200).json(photos.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to load gallery assets." });
+    }
+});
+
+app.post('/api/users/:id/photos', async (req, res) => {
+    const { id } = req.params;
+    const { imageUrl } = req.body;
+    if (!imageUrl) return res.status(400).json({ error: "Image data missing." });
+
+    try {
+        const countCheck = await pool.query(`SELECT COUNT(*) FROM user_photos WHERE user_id = $1`, [id]);
+        if (parseInt(countCheck.rows[0].count) >= 5) {
+            return res.status(400).json({ error: "Gallery slots full. Delete an image first." });
+        }
+        const newPhoto = await pool.query(`INSERT INTO user_photos (user_id, image_url) VALUES ($1, $2) RETURNING *`, [id, imageUrl]);
+        res.status(201).json(newPhoto.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to upload gallery asset." });
+    }
+});
+
+app.delete('/api/photos/:photoId', async (req, res) => {
+    const { photoId } = req.params;
+    try {
+        await pool.query(`DELETE FROM user_photos WHERE id = $1`, [photoId]);
+        res.status(200).json({ success: true, message: "Photo asset wiped successfully." });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to eliminate targeted photo entry." });
     }
 });
 

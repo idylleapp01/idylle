@@ -146,7 +146,7 @@
                     </div>
                 </div>
                 <div class="field-group">
-                    <label>Profile Image Upload & Crop</label>
+                    <label>Main Profile Image</label>
                     <input type="file" id="imageLoaderInput" class="hidden" accept="image/jpeg, image/png, image/webp" onchange="initializeImageCropper(this)">
                     <button type="button" class="upload-trigger-btn" onclick="document.getElementById('imageLoaderInput').click()">📸 Select Photo File</button>
                     <span id="fileUploadStatus" style="font-size:0.75rem; color:#888;">No file chosen</span>
@@ -154,6 +154,14 @@
                         <img id="imageContainerView" src="" alt="">
                     </div>
                 </div>
+
+                <div class="field-group" style="margin-top: 5px;">
+                    <label>My Photo Gallery Slots (Max 5 items)</label>
+                    <div id="galleryGridContainer" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 6px;"></div>
+                    <input type="file" id="galleryFileLoader" class="hidden" accept="image/jpeg, image/png, image/webp" onchange="uploadGalleryPhoto(this)">
+                    <button type="button" class="upload-trigger-btn" style="width: 100%;" onclick="document.getElementById('galleryFileLoader').click()">➕ Add Photo to Gallery Slot</button>
+                </div>
+
                 <div class="field-group">
                     <label>Short Bio</label>
                     <textarea id="myDetailsBio" rows="2"></textarea>
@@ -206,19 +214,12 @@
             document.getElementById('myDetailsBio').value = currentUser.bio || '';
             document.getElementById('myDetailsInterest').value = currentUser.interests || '';
             document.getElementById('myDetailsPreference').value = currentUser.looking_for || 'Everyone';
-            
-            if (currentUser.profile_pic_url) {
-                croppedImageBase64 = currentUser.profile_pic_url;
-                document.getElementById('fileUploadStatus').innerText = "Current profile picture active";
-            }
+            if (currentUser.profile_pic_url) croppedImageBase64 = currentUser.profile_pic_url;
         }
 
         function applyAdvancedFilters() {
             clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                currentProfileIndex = 0;
-                fetchDiscoverFeed();
-            }, 400);
+            debounceTimer = setTimeout(() => { currentProfileIndex = 0; fetchDiscoverFeed(); }, 400);
         }
 
         function clearDiscoveryFilters() {
@@ -233,14 +234,11 @@
         function initializeImageCropper(fileInput) {
             const file = fileInput.files[0];
             if (!file) return;
-            if (file.size > 5 * 1024 * 1024) { alert("Max file size limit is 5MB."); return; }
-
             const reader = new FileReader();
             reader.onload = function(e) {
                 const targetImg = document.getElementById('imageContainerView');
                 targetImg.src = e.target.result;
                 document.getElementById('cropperStageBox').classList.remove('hidden');
-                
                 if (cropperInstance) cropperInstance.destroy();
                 cropperInstance = new Cropper(targetImg, { aspectRatio: 1, viewMode: 1 });
             };
@@ -252,7 +250,6 @@
             const gender = document.getElementById('filterGender').value;
             const goal = document.getElementById('filterGoal').value;
             const interest = document.getElementById('filterInterest').value;
-
             try {
                 const params = new URLSearchParams({ userId: currentUser.id, search, gender, goal, interest });
                 const res = await fetch(`${BACKEND_URL}/api/users/discover?${params.toString()}`);
@@ -264,38 +261,25 @@
         function renderCurrentProfile() {
             const card = document.getElementById('profileCard');
             const empty = document.getElementById('emptyState');
-
             if (currentProfileIndex >= profilesQueue.length) {
-                card.classList.add('hidden');
-                empty.classList.remove('hidden');
-                return;
+                card.classList.add('hidden'); empty.classList.remove('hidden'); return;
             }
-
-            card.classList.remove('hidden');
-            empty.classList.add('hidden');
-
+            card.classList.remove('hidden'); empty.classList.add('hidden');
             const u = profilesQueue[currentProfileIndex];
             document.getElementById('profileCardName').innerText = u.name;
             document.getElementById('profileCardMeta').innerText = `${u.gender || 'User'} • ${u.location || 'Nearby'}`;
             document.getElementById('profileCardBio').innerText = u.bio || 'No bio provided.';
-
             const img = document.getElementById('profileCardImg');
             const icon = document.getElementById('profileCardIcon');
             if (u.profile_pic_url) {
-                img.src = u.profile_pic_url;
-                img.classList.remove('hidden');
-                icon.classList.add('hidden');
+                img.src = u.profile_pic_url; img.classList.remove('hidden'); icon.classList.add('hidden');
             } else {
-                img.classList.add('hidden');
-                icon.classList.remove('hidden');
+                img.classList.add('hidden'); icon.classList.remove('hidden');
             }
-
             const tags = document.getElementById('profileCardTags');
             tags.innerHTML = u.relationship_goal ? `<span class="badge goal">🎯 ${u.relationship_goal}</span>` : '';
             if (u.interests) {
-                u.interests.split(',').forEach(t => {
-                    if (t.trim()) tags.innerHTML += `<span class="badge">✨ ${t.trim()}</span>`;
-                });
+                u.interests.split(',').forEach(t => { if (t.trim()) tags.innerHTML += `<span class="badge">✨ ${t.trim()}</span>`; });
             }
         }
 
@@ -304,7 +288,6 @@
             const target = profilesQueue[currentProfileIndex];
             currentProfileIndex++;
             renderCurrentProfile();
-
             if (isLike) {
                 try {
                     const res = await fetch(`${BACKEND_URL}/api/like`, {
@@ -318,7 +301,51 @@
             }
         }
 
-        function openProfileModal() { document.getElementById('profileModal').classList.remove('hidden'); }
+        async function syncProfileGalleryUI() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/photos`);
+                const photos = await res.json();
+                const container = document.getElementById('galleryGridContainer');
+                container.innerHTML = '';
+                for (let i = 0; i < 5; i++) {
+                    const item = photos[i];
+                    if (item) {
+                        container.innerHTML += `
+                            <div style="position: relative; background: #222; aspect-ratio:1; border-radius:6px; overflow:hidden; border:1px solid #333;">
+                                <img src="${item.image_url}" style="width:100%; height:100%; object-fit:cover;">
+                                <button type="button" onclick="removeGalleryAsset(${item.id})" style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.7); border:none; color:#ff4444; border-radius:50%; width:20px; height:20px; cursor:pointer; font-size:0.75rem;">✕</button>
+                            </div>`;
+                    } else {
+                        container.innerHTML += `<div style="background:#1a1a1a; aspect-ratio:1; border-radius:6px; border:1px dashed #333; display:flex; align-items:center; justify-content:center; color:#444; font-size:1.2rem;">🖼️</div>`;
+                    }
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function uploadGalleryPhoto(input) {
+            const file = input.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/users/${currentUser.id}/photos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ imageUrl: e.target.result })
+                    });
+                    if (response.ok) syncProfileGalleryUI();
+                } catch (err) { console.error(err); }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function removeGalleryAsset(photoId) {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/photos/${photoId}`, { method: 'DELETE' });
+                if (res.ok) syncProfileGalleryUI();
+            } catch (err) { console.error(err); }
+        }
+
+        function openProfileModal() { document.getElementById('profileModal').classList.remove('hidden'); syncProfileGalleryUI(); }
         function closeProfileModal() { 
             document.getElementById('profileModal').classList.add('hidden'); 
             if(cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
@@ -330,7 +357,6 @@
                 const canvas = cropperInstance.getCroppedCanvas({ width: 300, height: 300 });
                 croppedImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
             }
-
             currentUser.name = document.getElementById('myDetailsName').value;
             currentUser.location = document.getElementById('myDetailsLocation').value;
             currentUser.gender = document.getElementById('myDetailsGender').value;
@@ -341,9 +367,7 @@
             currentUser.profile_pic_url = croppedImageBase64;
 
             localStorage.setItem('user', JSON.stringify(currentUser));
-            closeProfileModal();
-            fetchDiscoverFeed();
-            alert("Profile settings synchronized!");
+            closeProfileModal(); fetchDiscoverFeed(); alert("Profile settings synchronized!");
         }
 
         function handleLogout() { localStorage.clear(); window.location.href = 'index.html'; }

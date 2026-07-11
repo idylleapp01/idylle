@@ -72,23 +72,18 @@
         </div>
 
         <div class="chat-pane" id="chatPane">
-            <div class="chat-empty" id="chatEmptyState">
-                Select a match from the sidebar to begin messaging.
-            </div>
+            <div class="chat-empty" id="chatEmptyState">Select a match from the sidebar to begin messaging.</div>
             
             <div id="chatContentArea" class="hidden" style="display:none; flex-direction:column; height:100%;">
                 <div class="chat-header">
                     <img src="" id="activeChatAvatar" class="thread-avatar" alt="">
                     <h3 id="activeChatName">Connecting...</h3>
                 </div>
-
                 <div class="message-log" id="messageLog"></div>
-
                 <div class="icebreaker-bar">
                     <span class="icebreaker-title">💡 Stuck? Try an Icebreaker Starter:</span>
                     <div class="icebreaker-chips" id="icebreakerBox"></div>
                 </div>
-
                 <div class="input-bar">
                     <input type="text" id="msgInputField" placeholder="Type a secure message...">
                     <button onclick="dispatchMessage()">Send</button>
@@ -107,40 +102,32 @@
             const session = localStorage.getItem('user');
             if (!session) { window.location.href = 'index.html'; return; }
             currentUser = JSON.parse(session);
-
-            loadInboxData();
-            loadIcebreakers();
+            loadInboxData(); loadIcebreakers();
         };
 
         async function loadInboxData() {
             try {
                 const res = await fetch(`${BACKEND_URL}/api/matches?userId=${currentUser.id}`);
                 const matches = await res.json();
-                
                 const carousel = document.getElementById('matchesCarousel');
                 const threads = document.getElementById('threadsContainer');
-                carousel.innerHTML = '';
-                threads.innerHTML = '';
+                carousel.innerHTML = ''; threads.innerHTML = '';
 
                 if (matches.length === 0) {
                     carousel.innerHTML = '<span style="font-size:0.85rem; color:#444;">No new connections yet.</span>';
                     threads.innerHTML = '<span style="font-size:0.85rem; color:#444;">Swiping matches unlocks chat.</span>';
                     return;
                 }
-
                 matches.forEach(m => {
                     carousel.innerHTML += `
                         <div class="carousel-item" onclick="openChatWindow(${m.user_id}, '${m.name}', '${m.profile_pic_url || ''}')">
                             <img src="${m.profile_pic_url || ''}" class="carousel-avatar" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23555\'><circle cx=\'12\' cy=\'8\' r=\'4\'/><path d=\'M12 14c-6.1 0-8 4-8 4h16s-1.9-4-8-4z\'/></svg>'}" alt="">
                             <div class="carousel-name">${m.name}</div>
                         </div>`;
-
                     threads.innerHTML += `
                         <div class="thread-item" id="thread-${m.user_id}" onclick="openChatWindow(${m.user_id}, '${m.name}', '${m.profile_pic_url || ''}')">
                             <img src="${m.profile_pic_url || ''}" class="thread-avatar" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23555\'><circle cx=\'12\' cy=\'8\' r=\'4\'/><path d=\'M12 14c-6.1 0-8 4-8 4h16s-1.9-4-8-4z\'/></svg>'}" alt="">
-                            <div class="thread-info">
-                                <div class="thread-name">${m.name}</div>
-                            </div>
+                            <div class="thread-info"><div class="thread-name">${m.name}</div></div>
                         </div>`;
                 });
             } catch (err) { console.error(err); }
@@ -158,24 +145,18 @@
             } catch (e) { console.error(e); }
         }
 
-        function applyIcebreaker(text) {
-            document.getElementById('msgInputField').value = text;
-        }
+        function applyIcebreaker(text) { document.getElementById('msgInputField').value = text; }
 
         function openChatWindow(recipientId, name, avatarUrl) {
             activeRecipientId = recipientId;
             document.getElementById('chatEmptyState').style.display = 'none';
             document.getElementById('chatContentArea').style.display = 'flex';
-            
             document.getElementById('activeChatName').innerText = name;
             document.getElementById('activeChatAvatar').src = avatarUrl || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23555\'><circle cx=\'12\' cy=\'8\' r=\'4\'/><path d=\'M12 14c-6.1 0-8 4-8 4h16s-1.9-4-8-4z\'/></svg>';
-
             document.querySelectorAll('.thread-item').forEach(el => el.classList.remove('active'));
             const targetThread = document.getElementById(`thread-${recipientId}`);
             if (targetThread) targetThread.classList.add('active');
-
-            syncMessages();
-            clearInterval(updateInterval);
+            syncMessages(); clearInterval(updateInterval);
             updateInterval = setInterval(syncMessages, 3000);
         }
 
@@ -185,15 +166,12 @@
                 const res = await fetch(`${BACKEND_URL}/api/messages?senderId=${currentUser.id}&receiverId=${activeRecipientId}`);
                 const history = await res.json();
                 const log = document.getElementById('messageLog');
-                
                 const currentScroll = log.scrollTop + log.clientHeight >= log.scrollHeight - 50;
-
                 log.innerHTML = '';
                 history.forEach(m => {
                     const typeClass = m.sender_id === currentUser.id ? 'sent' : 'received';
                     log.innerHTML += `<div class="msg-bubble ${typeClass}">${m.message_text}</div>`;
                 });
-
                 if (currentScroll) log.scrollTop = log.scrollHeight;
             } catch (err) { console.error(err); }
         }
@@ -202,7 +180,6 @@
             const input = document.getElementById('msgInputField');
             const text = input.value.trim();
             if (!text || !activeRecipientId) return;
-
             input.value = '';
             try {
                 const res = await fetch(`${BACKEND_URL}/api/messages`, {
