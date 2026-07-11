@@ -39,6 +39,8 @@ async function initDB() {
         // 2. Combined Robust Migration Checks
         const alterQueries = [
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);`,
+            // Fixes the NOT NULL constraint conflict for Google Auth accounts
+            `ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;`, 
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50);`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(50);`,
             `ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;`,
